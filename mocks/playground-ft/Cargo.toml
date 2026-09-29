@@ -1,0 +1,25 @@
+[package]
+name = "playground-ft"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "TESTNET PLAYGROUND ONLY: standard NEP-141 token (docs/testnet-playground.md)"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+near-sdk = { version = "5.29.1", default-features = false }
+near-contract-standards = "5.29.1"
+
+# own workspace: not part of the audited contracts workspace (../../Cargo.toml)
+[workspace]
+
+[profile.release]
+codegen-units = 1
+opt-level = "z"
+lto = true
+debug = false
+panic = "abort"
+overflow-checks = true
+strip = true

@@ -1,0 +1,20 @@
+[package]
+name = "integration-tests"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+# default-features = false: drop near-workspaces "rustls" (reqwest aws-lc-rs provider), which pins
+# rustls below 0.23.45 via near-crypto's aws-lc-rs =1.16.2 (RUSTSEC-2026-0285). RPC uses native-tls.
+near-workspaces = { version = "0.23.0", default-features = false, features = ["unstable", "install", "native-tls"] }
+tokio = { version = "1", features = ["full"] }
+anyhow = "1"
+serde_json = "1"
+serde = { version = "1", features = ["derive"] }
+near-sdk = { workspace = true, features = ["non-contract-usage"] }
+sha2 = "0.10"
+bs58 = "0.5"
+base64 = "0.22"
+ed25519-dalek = "2"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }

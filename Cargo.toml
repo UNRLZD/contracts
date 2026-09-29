@@ -1,0 +1,20 @@
+[workspace]
+resolver = "2"
+members = ["trading-account", "factory", "mocks/mock-ft", "mocks/global-deployer", "mocks/mock-plach", "mocks/gas-burner", "tests"]
+
+[workspace.dependencies]
+# default-features = false: no wee_alloc (RUSTSEC-2022-0054); the default Rust wasm allocator is used.
+near-sdk = { version = "5.29.1", default-features = false }
+
+# v1.4.3 (CARGOLINT-001/002): shared lints for the contract crates (`[lints] workspace = true`).
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[profile.release]
+codegen-units = 1
+opt-level = "z"
+lto = true
+debug = false
+panic = "abort"
+overflow-checks = true
+strip = true

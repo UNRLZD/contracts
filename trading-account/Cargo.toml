@@ -1,0 +1,38 @@
+[package]
+name = "trading-account"
+version = "1.4.6"
+edition = "2021"
+# v1.4.3 (MSRV-001): the toolchain this is built and tested with (reproducible image: 1.97.1)
+rust-version = "1.96"
+publish = false
+repository = "https://github.com/UNRLZD/contracts"
+
+[lints]
+workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+# Builds a variant whose get_config().version == "upgrade-test"; used only by the
+# sandbox upgrade-path test.
+upgrade-test = []
+# NEP-611 gas keys in owner_add_key. OFF in v1.1: DeleteKey burns a gas key's balance
+# and near-sdk 5.29 cannot WithdrawFromGasKey.
+gas-keys = []
+
+[dependencies]
+near-sdk = { workspace = true }
+
+[dev-dependencies]
+near-sdk = { workspace = true, features = ["unit-testing"] }
+proptest = "1"
+ed25519-dalek = "2"
+
+[package.metadata.near.reproducible_build]
+# `cargo near build reproducible-wasm` (needs Docker + a committed git repo; set
+# package.repository before mainnet). Local artifacts in out/ are non-reproducible builds.
+image = "sourcescan/cargo-near:0.22.0-rust-1.97.1"
+image_digest = "sha256:7467038bdddc86484b73b416eeadce926ff59013e128e53dec5a19e1cb4b2234"
+passed_env = []
+container_build_command = ["cargo", "near", "build", "non-reproducible-wasm", "--locked", "--no-abi"]

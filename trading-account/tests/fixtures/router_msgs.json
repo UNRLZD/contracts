@@ -1,0 +1,170 @@
+[
+ {
+  "name": "dcl_buy#0:RheaDcl",
+  "kind": "RheaDcl",
+  "token": "wrap.near",
+  "msg": "{\"Swap\":{\"min_output_amount\":\"5330345\",\"output_token\":\"usdt.tether-token.near\",\"pool_ids\":[\"usdt.tether-token.near|wrap.near|100\"],\"skip_unwrap_near\":true}}",
+  "expect_min_out": "5330345",
+  "out_is_near": false
+ },
+ {
+  "name": "dcl_sell#0:RheaDcl",
+  "kind": "RheaDcl",
+  "token": "usdt.tether-token.near",
+  "msg": "{\"Swap\":{\"min_output_amount\":\"183834607099385902340415\",\"output_token\":\"wrap.near\",\"pool_ids\":[\"usdt.tether-token.near|wrap.near|2000\"],\"skip_unwrap_near\":false}}",
+  "expect_min_out": "183834607099385902340415",
+  "out_is_near": true
+ },
+ {
+  "name": "pbuy_blackdragon#0:Plach:deposit_near",
+  "kind": "PlachNear",
+  "token": "near",
+  "msg": "{\"operations\":[{\"SwapSimple\":{\"amount\":{\"Amount\":{\"ExactIn\":\"1000000000000000000000000\"}},\"asset_in\":\"near\",\"asset_out\":\"nep141:token.0xshitzu.near\",\"constraint\":null,\"dex_id\":\"slimedragon.near/xyk\",\"message\":\"FQAAAA==\"}},{\"SwapSimple\":{\"amount\":\"OutputOfLastIn\",\"asset_in\":\"nep141:token.0xshitzu.near\",\"asset_out\":\"nep141:blackdragon.tkn.near\",\"constraint\":\"168762399056006360086982810129454\",\"dex_id\":\"slimedragon.near/xyk\",\"message\":\"DwAAAA==\"}},{\"Withdraw\":{\"amount\":{\"Full\":{\"at_least\":\"168762399056006360086982810129454\"}},\"asset_id\":\"nep141:blackdragon.tkn.near\",\"rescue_address\":null,\"to\":null}}],\"referrer\":\"dex-aggregator.intear.near\"}",
+  "expect_min_out": "168762399056006360086982810129454",
+  "out_is_near": false,
+  "deposit": "1000000000000000000000000"
+ },
+ {
+  "name": "pbuy_juij_launch#0:Plach:deposit_near",
+  "kind": "PlachNear",
+  "token": "near",
+  "msg": "{\"operations\":[{\"SwapSimple\":{\"amount\":{\"Amount\":{\"ExactIn\":\"100000000000000000000000\"}},\"asset_in\":\"near\",\"asset_out\":\"nep141:juij.launch.intear.near\",\"constraint\":\"220492636065818621284382054441\",\"dex_id\":\"slimedragon.near/xyk\",\"message\":\"GwAAAA==\"}},{\"Withdraw\":{\"amount\":{\"Full\":{\"at_least\":\"220492636065818621284382054441\"}},\"asset_id\":\"nep141:juij.launch.intear.near\",\"rescue_address\":null,\"to\":null}}],\"referrer\":\"dex-aggregator.intear.near\"}",
+  "expect_min_out": "220492636065818621284382054441",
+  "out_is_near": false,
+  "deposit": "100000000000000000000000"
+ },
+ {
+  "name": "pbuy_shitzu#0:Plach:deposit_near",
+  "kind": "PlachNear",
+  "token": "near",
+  "msg": "{\"operations\":[{\"SwapSimple\":{\"amount\":{\"Amount\":{\"ExactIn\":\"2000000000000000000000000\"}},\"asset_in\":\"near\",\"asset_out\":\"nep141:token.0xshitzu.near\",\"constraint\":\"746073427385489076154\",\"dex_id\":\"slimedragon.near/xyk\",\"message\":\"FQAAAA==\"}},{\"Withdraw\":{\"amount\":{\"Full\":{\"at_least\":\"746073427385489076154\"}},\"asset_id\":\"nep141:token.0xshitzu.near\",\"rescue_address\":null,\"to\":null}}],\"referrer\":\"dex-aggregator.intear.near\"}",
+  "expect_min_out": "746073427385489076154",
+  "out_is_near": false,
+  "deposit": "2000000000000000000000000"
+ },
+ {
+  "name": "plach_buy#0:Plach:deposit_near",
+  "kind": "PlachNear",
+  "token": "near",
+  "msg": "{\"operations\":[{\"SwapSimple\":{\"amount\":{\"Amount\":{\"ExactIn\":\"1000000000000000000000000\"}},\"asset_in\":\"near\",\"asset_out\":\"nep141:token.0xshitzu.near\",\"constraint\":null,\"dex_id\":\"slimedragon.near/xyk\",\"message\":\"FQAAAA==\"}},{\"SwapSimple\":{\"amount\":\"OutputOfLastIn\",\"asset_in\":\"nep141:token.0xshitzu.near\",\"asset_out\":\"nep141:blackdragon.tkn.near\",\"constraint\":\"129042255624758089604587116001423\",\"dex_id\":\"slimedragon.near/xyk\",\"message\":\"DwAAAA==\"}},{\"Withdraw\":{\"amount\":{\"Full\":{\"at_least\":\"129042255624758089604587116001423\"}},\"asset_id\":\"nep141:blackdragon.tkn.near\",\"rescue_address\":null,\"to\":null}}],\"referrer\":\"dex-aggregator.intear.near\"}",
+  "expect_min_out": "129042255624758089604587116001423",
+  "out_is_near": false,
+  "deposit": "1000000000000000000000000"
+ },
+ {
+  "name": "plach_buy_wrap#0:Plach:deposit_near",
+  "kind": "PlachNear",
+  "token": "near",
+  "msg": "{\"operations\":[{\"SwapSimple\":{\"amount\":{\"Amount\":{\"ExactIn\":\"1000000000000000000000000\"}},\"asset_in\":\"near\",\"asset_out\":\"nep141:token.0xshitzu.near\",\"constraint\":null,\"dex_id\":\"slimedragon.near/xyk\",\"message\":\"FQAAAA==\"}},{\"SwapSimple\":{\"amount\":\"OutputOfLastIn\",\"asset_in\":\"nep141:token.0xshitzu.near\",\"asset_out\":\"nep141:blackdragon.tkn.near\",\"constraint\":\"128625921239156963871566991255470\",\"dex_id\":\"slimedragon.near/xyk\",\"message\":\"DwAAAA==\"}},{\"Withdraw\":{\"amount\":{\"Full\":{\"at_least\":\"128625921239156963871566991255470\"}},\"asset_id\":\"nep141:blackdragon.tkn.near\",\"rescue_address\":null,\"to\":null}}],\"referrer\":\"dex-aggregator.intear.near\"}",
+  "expect_min_out": "128625921239156963871566991255470",
+  "out_is_near": false,
+  "deposit": "1000000000000000000000000"
+ },
+ {
+  "name": "plach_launch_buy#0:Plach:deposit_near",
+  "kind": "PlachNear",
+  "token": "near",
+  "msg": "{\"operations\":[{\"SwapSimple\":{\"amount\":{\"Amount\":{\"ExactIn\":\"95000000000000000000000\"}},\"asset_in\":\"near\",\"asset_out\":\"nep141:juij.launch.intear.near\",\"constraint\":\"216252254411527786001209848967\",\"dex_id\":\"slimedragon.near/xyk\",\"message\":\"GwAAAA==\"}},{\"SwapSimple\":{\"amount\":{\"Amount\":{\"ExactIn\":\"5000000000000000000000\"}},\"asset_in\":\"near\",\"asset_out\":\"nep141:juij.launch.intear.near\",\"constraint\":\"11385337464011162217739715882\",\"dex_id\":\"slimedragon.near/xyk\",\"message\":\"HAAAAA==\"}},{\"Withdraw\":{\"amount\":{\"Full\":{\"at_least\":\"227637591875538948218949564849\"}},\"asset_id\":\"nep141:juij.launch.intear.near\",\"rescue_address\":null,\"to\":null}}],\"referrer\":\"dex-aggregator.intear.near\"}",
+  "expect_min_out": "227637591875538948218949564849",
+  "out_is_near": false,
+  "deposit": "100000000000000000000000"
+ },
+ {
+  "name": "plach_launch_sell#0:Plach",
+  "kind": "Plach",
+  "token": "juij.launch.intear.near",
+  "msg": "{\"operations\":[{\"SwapSimple\":{\"amount\":{\"Amount\":{\"ExactIn\":\"1000000000000000000000000\"}},\"asset_in\":\"nep141:juij.launch.intear.near\",\"asset_out\":\"near\",\"constraint\":\"429585182388423988\",\"dex_id\":\"slimedragon.near/xyk\",\"message\":\"GwAAAA==\"}},{\"Withdraw\":{\"amount\":{\"Full\":{\"at_least\":\"429585182388423988\"}},\"asset_id\":\"near\",\"rescue_address\":null,\"to\":null}}],\"referrer\":\"dex-aggregator.intear.near\"}",
+  "expect_min_out": "429585182388423988",
+  "out_is_near": true
+ },
+ {
+  "name": "plach_sell#0:Plach",
+  "kind": "Plach",
+  "token": "blackdragon.tkn.near",
+  "msg": "{\"operations\":[{\"SwapSimple\":{\"amount\":{\"Amount\":{\"ExactIn\":\"100000000000000000000000000000000\"}},\"asset_in\":\"nep141:blackdragon.tkn.near\",\"asset_out\":\"nep141:token.0xshitzu.near\",\"constraint\":null,\"dex_id\":\"slimedragon.near/xyk\",\"message\":\"DwAAAA==\"}},{\"SwapSimple\":{\"amount\":\"OutputOfLastIn\",\"asset_in\":\"nep141:token.0xshitzu.near\",\"asset_out\":\"near\",\"constraint\":\"665826671775999721785838\",\"dex_id\":\"slimedragon.near/xyk\",\"message\":\"FQAAAA==\"}},{\"Withdraw\":{\"amount\":{\"Full\":{\"at_least\":\"665826671775999721785838\"}},\"asset_id\":\"near\",\"rescue_address\":null,\"to\":null}}],\"referrer\":\"dex-aggregator.intear.near\"}",
+  "expect_min_out": "665826671775999721785838",
+  "out_is_near": true
+ },
+ {
+  "name": "plach_sell_wrap#0:Plach",
+  "kind": "Plach",
+  "token": "blackdragon.tkn.near",
+  "msg": "{\"operations\":[{\"SwapSimple\":{\"amount\":{\"Amount\":{\"ExactIn\":\"100000000000000000000000000000000\"}},\"asset_in\":\"nep141:blackdragon.tkn.near\",\"asset_out\":\"nep141:token.0xshitzu.near\",\"constraint\":null,\"dex_id\":\"slimedragon.near/xyk\",\"message\":\"DwAAAA==\"}},{\"SwapSimple\":{\"amount\":\"OutputOfLastIn\",\"asset_in\":\"nep141:token.0xshitzu.near\",\"asset_out\":\"near\",\"constraint\":\"668142123210190172126938\",\"dex_id\":\"slimedragon.near/xyk\",\"message\":\"FQAAAA==\"}},{\"Withdraw\":{\"amount\":{\"Full\":{\"at_least\":\"668142123210190172126938\"}},\"asset_id\":\"near\",\"rescue_address\":null,\"to\":null}}],\"referrer\":\"dex-aggregator.intear.near\"}",
+  "expect_min_out": "668142123210190172126938",
+  "out_is_near": true
+ },
+ {
+  "name": "rhea_buy#0:Rhea",
+  "kind": "RheaClassic",
+  "token": "wrap.near",
+  "msg": "{\"actions\":[{\"amount_in\":\"990000000000000000000000\",\"amount_out\":\"0\",\"min_amount_out\":\"139793060943272719440365232044811\",\"pool_id\":4276,\"token_in\":\"wrap.near\",\"token_out\":\"blackdragon.tkn.near\"},{\"amount_in\":\"10000000000000000000000\",\"amount_out\":\"0\",\"min_amount_out\":\"0\",\"pool_id\":8595,\"token_in\":\"wrap.near\",\"token_out\":\"17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1\"},{\"amount_out\":\"0\",\"min_amount_out\":\"0\",\"pool_id\":4513,\"token_in\":\"17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1\",\"token_out\":\"usdt.tether-token.near\"},{\"amount_out\":\"0\",\"min_amount_out\":\"1415127868975767191240247447439\",\"pool_id\":4612,\"token_in\":\"usdt.tether-token.near\",\"token_out\":\"blackdragon.tkn.near\"}],\"force\":0,\"referral_id\":\"dex-aggregator.intear.near\",\"skip_degen_price_sync\":true,\"skip_unwrap_near\":true}",
+  "expect_min_out": "141208188812248486631605479492250",
+  "out_is_near": false
+ },
+ {
+  "name": "rhea_other#0:Rhea",
+  "kind": "RheaClassic",
+  "token": "usdt.tether-token.near",
+  "msg": "{\"actions\":[{\"amount_in\":\"1000000\",\"amount_out\":\"0\",\"min_amount_out\":\"0\",\"pool_id\":6416,\"token_in\":\"usdt.tether-token.near\",\"token_out\":\"17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1\"},{\"amount_out\":\"0\",\"min_amount_out\":\"0\",\"pool_id\":5515,\"token_in\":\"17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1\",\"token_out\":\"wrap.near\"},{\"amount_out\":\"0\",\"min_amount_out\":\"26275970964273845662186610829423\",\"pool_id\":4276,\"token_in\":\"wrap.near\",\"token_out\":\"blackdragon.tkn.near\"}],\"force\":0,\"referral_id\":\"dex-aggregator.intear.near\",\"skip_degen_price_sync\":true,\"skip_unwrap_near\":true}",
+  "expect_min_out": "26275970964273845662186610829423",
+  "out_is_near": false
+ },
+ {
+  "name": "rhea_sell#0:Rhea",
+  "kind": "RheaClassic",
+  "token": "blackdragon.tkn.near",
+  "msg": "{\"actions\":[{\"amount_in\":\"71000000000000000000000000000000\",\"amount_out\":\"0\",\"min_amount_out\":\"0\",\"pool_id\":4372,\"token_in\":\"blackdragon.tkn.near\",\"token_out\":\"token.0xshitzu.near\"},{\"amount_out\":\"0\",\"min_amount_out\":\"0\",\"pool_id\":6584,\"token_in\":\"token.0xshitzu.near\",\"token_out\":\"kat.token0.near\"},{\"amount_out\":\"0\",\"min_amount_out\":\"491187866014736683048238\",\"pool_id\":5391,\"token_in\":\"kat.token0.near\",\"token_out\":\"wrap.near\"},{\"amount_in\":\"29000000000000000000000000000000\",\"amount_out\":\"0\",\"min_amount_out\":\"200061474374024692142972\",\"pool_id\":4276,\"token_in\":\"blackdragon.tkn.near\",\"token_out\":\"wrap.near\"}],\"force\":0,\"referral_id\":\"dex-aggregator.intear.near\",\"skip_degen_price_sync\":true,\"skip_unwrap_near\":false}",
+  "expect_min_out": "691249340388761375191210",
+  "out_is_near": true
+ },
+ {
+  "name": "rhea_usdt#0:Rhea",
+  "kind": "RheaClassic",
+  "token": "wrap.near",
+  "msg": "{\"actions\":[{\"amount_in\":\"2700000000000000000000000\",\"amount_out\":\"0\",\"min_amount_out\":\"0\",\"pool_id\":3807,\"token_in\":\"wrap.near\",\"token_out\":\"ftv2.nekotoken.near\"},{\"amount_out\":\"0\",\"min_amount_out\":\"0\",\"pool_id\":3804,\"token_in\":\"ftv2.nekotoken.near\",\"token_out\":\"a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.factory.bridge.near\"},{\"amount_out\":\"0\",\"min_amount_out\":\"14366430\",\"pool_id\":4179,\"token_in\":\"a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.factory.bridge.near\",\"token_out\":\"usdt.tether-token.near\"},{\"amount_in\":\"2300000000000000000000000\",\"amount_out\":\"0\",\"min_amount_out\":\"0\",\"pool_id\":2,\"token_in\":\"wrap.near\",\"token_out\":\"6b175474e89094c44da98b954eedeac495271d0f.factory.bridge.near\"},{\"amount_out\":\"0\",\"min_amount_out\":\"0\",\"pool_id\":1910,\"token_in\":\"6b175474e89094c44da98b954eedeac495271d0f.factory.bridge.near\",\"token_out\":\"dac17f958d2ee523a2206206994597c13d831ec7.factory.bridge.near\"},{\"amount_out\":\"0\",\"min_amount_out\":\"12217609\",\"pool_id\":4179,\"token_in\":\"dac17f958d2ee523a2206206994597c13d831ec7.factory.bridge.near\",\"token_out\":\"usdt.tether-token.near\"}],\"force\":0,\"referral_id\":\"dex-aggregator.intear.near\",\"skip_degen_price_sync\":true,\"skip_unwrap_near\":true}",
+  "expect_min_out": "26584039",
+  "out_is_near": false
+ },
+ {
+  "name": "spike_buy#0:Rhea",
+  "kind": "RheaClassic",
+  "token": "wrap.near",
+  "msg": "{\"actions\":[{\"amount_in\":\"1000000000000000000000000\",\"amount_out\":\"0\",\"min_amount_out\":\"204681994868120473664249010736689\",\"pool_id\":4276,\"token_in\":\"wrap.near\",\"token_out\":\"blackdragon.tkn.near\"}],\"force\":0,\"referral_id\":\"intear.near\",\"skip_degen_price_sync\":true,\"skip_unwrap_near\":true}",
+  "expect_min_out": "204681994868120473664249010736689",
+  "out_is_near": false
+ },
+ {
+  "name": "spike_buy#1:Plach:deposit_near",
+  "kind": "PlachNear",
+  "token": "near",
+  "msg": "{\"operations\":[{\"SwapSimple\":{\"amount\":{\"Amount\":{\"ExactIn\":\"1000000000000000000000000\"}},\"asset_in\":\"near\",\"asset_out\":\"nep141:token.0xshitzu.near\",\"constraint\":null,\"dex_id\":\"slimedragon.near/xyk\",\"message\":\"FQAAAA==\"}},{\"SwapSimple\":{\"amount\":\"OutputOfLastIn\",\"asset_in\":\"nep141:token.0xshitzu.near\",\"asset_out\":\"nep141:blackdragon.tkn.near\",\"constraint\":\"169412075659397187911373155933869\",\"dex_id\":\"slimedragon.near/xyk\",\"message\":\"DwAAAA==\"}},{\"Withdraw\":{\"amount\":{\"Full\":{\"at_least\":\"169412075659397187911373155933869\"}},\"asset_id\":\"nep141:blackdragon.tkn.near\",\"rescue_address\":null,\"to\":null}}],\"referrer\":\"intear.near\"}",
+  "expect_min_out": "169412075659397187911373155933869",
+  "out_is_near": false,
+  "deposit": "1000000000000000000000000"
+ },
+ {
+  "name": "spike_exactout#0:Plach:deposit_near",
+  "kind": "PlachNear",
+  "token": "near",
+  "msg": "{\"operations\":[{\"SwapSimple\":{\"amount\":{\"Amount\":{\"ExactOut\":\"1000000000000000000000000\"}},\"asset_in\":\"near\",\"asset_out\":\"nep141:juij.launch.intear.near\",\"constraint\":\"438049687970115845\",\"dex_id\":\"slimedragon.near/xyk\",\"message\":\"HAAAAA==\"}},{\"Withdraw\":{\"amount\":{\"Full\":{\"at_least\":\"1000000000000000000000000\"}},\"asset_id\":\"nep141:juij.launch.intear.near\",\"rescue_address\":null,\"to\":null}},{\"Withdraw\":{\"amount\":{\"Full\":{\"at_least\":null}},\"asset_id\":\"near\",\"rescue_address\":null,\"to\":null}}],\"referrer\":\"intear.near\"}",
+  "expect_min_out": "1000000000000000000000000",
+  "out_is_near": false,
+  "deposit": "438049687970115845"
+ },
+ {
+  "name": "spike_sell#0:Rhea",
+  "kind": "RheaClassic",
+  "token": "blackdragon.tkn.near",
+  "msg": "{\"actions\":[{\"amount_in\":\"92000000000000000000000000000000\",\"amount_out\":\"0\",\"min_amount_out\":\"0\",\"pool_id\":6694,\"token_in\":\"blackdragon.tkn.near\",\"token_out\":\"vote-1737.meme-cooking.near\"},{\"amount_out\":\"0\",\"min_amount_out\":\"419405120144670422508890\",\"pool_id\":6618,\"token_in\":\"vote-1737.meme-cooking.near\",\"token_out\":\"wrap.near\"},{\"amount_in\":\"8000000000000000000000000000000\",\"amount_out\":\"0\",\"min_amount_out\":\"0\",\"pool_id\":4612,\"token_in\":\"blackdragon.tkn.near\",\"token_out\":\"usdt.tether-token.near\"},{\"amount_out\":\"0\",\"min_amount_out\":\"36979680881319376679254\",\"pool_id\":5470,\"token_in\":\"usdt.tether-token.near\",\"token_out\":\"wrap.near\"}],\"force\":0,\"referral_id\":\"intear.near\",\"skip_degen_price_sync\":true,\"skip_unwrap_near\":false}",
+  "expect_min_out": "456384801025989799188144",
+  "out_is_near": true
+ },
+ {
+  "name": "spike_sell#1:Plach",
+  "kind": "Plach",
+  "token": "blackdragon.tkn.near",
+  "msg": "{\"operations\":[{\"SwapSimple\":{\"amount\":{\"Amount\":{\"ExactIn\":\"100000000000000000000000000000000\"}},\"asset_in\":\"nep141:blackdragon.tkn.near\",\"asset_out\":\"nep141:token.0xshitzu.near\",\"constraint\":null,\"dex_id\":\"slimedragon.near/xyk\",\"message\":\"DwAAAA==\"}},{\"SwapSimple\":{\"amount\":\"OutputOfLastIn\",\"asset_in\":\"nep141:token.0xshitzu.near\",\"asset_out\":\"near\",\"constraint\":\"438083368131613141868869\",\"dex_id\":\"slimedragon.near/xyk\",\"message\":\"FQAAAA==\"}},{\"Withdraw\":{\"amount\":{\"Full\":{\"at_least\":\"438083368131613141868869\"}},\"asset_id\":\"near\",\"rescue_address\":null,\"to\":null}}],\"referrer\":\"intear.near\"}",
+  "expect_min_out": "438083368131613141868869",
+  "out_is_near": true
+ }
+]

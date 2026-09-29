@@ -1,0 +1,12 @@
+[package]
+name = "mock-ft"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+near-sdk = { workspace = true }
+near-contract-standards = "5.29.1"

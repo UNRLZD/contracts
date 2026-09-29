@@ -1,0 +1,110 @@
+[
+ {
+  "name": "quote-live-btc",
+  "signed_quote": "{\"amount\":\"100000\",\"amountIn\":\"100000\",\"amountInFormatted\":\"0.001\",\"amountInUsd\":\"82.782000000000\",\"amountOut\":\"16503469224991092715231787\",\"amountOutFormatted\":\"16.503469224991092715231787\",\"amountOutUsd\":\"81.857207355956\",\"deadline\":\"2026-10-01T11:30:19.000Z\",\"depositAddress\":\"bc1qezenpsyxf5mv6pr0j3xvrlhkuguy9f3kjlafzz\",\"depositType\":\"ORIGIN_CHAIN\",\"destinationAsset\":\"nep141:wrap.near\",\"dry\":false,\"minAmountIn\":\"100000\",\"minAmountOut\":\"16338434532741181788079469\",\"originAsset\":\"1cs_v1:btc:native:coin\",\"recipient\":\"alice.near\",\"recipientType\":\"DESTINATION_CHAIN\",\"refundFee\":\"1900\",\"refundTo\":\"bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq\",\"refundType\":\"ORIGIN_CHAIN\",\"slippageTolerance\":100,\"swapType\":\"EXACT_INPUT\",\"timeEstimate\":807,\"timeWhenInactive\":\"2026-10-01T11:30:19.000Z\",\"timestamp\":\"2026-09-28T10:30:21.364Z\",\"withdrawFee\":\"0\"}",
+  "signature": "ed25519:2F6yJ9VaextxefSvs8FJEG1bWtLMzZAGPt8KSrHbKT7MDR7nJPL1mnkUHGEu776F4KZYKVSMkSAQXu8xEpr6X9vD",
+  "message": "6HEgXAmTC9PTzwSajKhRGDmH2CEksUrzQgTzhRkr26Fz"
+ },
+ {
+  "name": "quote-live-usdc-eth",
+  "signed_quote": "{\"amount\":\"20000000\",\"amountIn\":\"20000000\",\"amountInFormatted\":\"20.0\",\"amountInUsd\":\"19.996640000000\",\"amountOut\":\"3989884828432205272415725\",\"amountOutFormatted\":\"3.989884828432205272415725\",\"amountOutUsd\":\"19.869626445592\",\"deadline\":\"2026-10-01T11:29:43.000Z\",\"depositAddress\":\"0xabd5745F77fCd032C710a38bF8B6cC8631b2ffcD\",\"depositType\":\"ORIGIN_CHAIN\",\"destinationAsset\":\"nep141:wrap.near\",\"dry\":false,\"minAmountIn\":\"20000000\",\"minAmountOut\":\"3949985980147883219691567\",\"originAsset\":\"nep141:eth-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.omft.near\",\"recipient\":\"alice.near\",\"recipientType\":\"DESTINATION_CHAIN\",\"refundFee\":\"300000\",\"refundTo\":\"0x2527D02599Ba641c19FEa793cD0F167589a0f10D\",\"refundType\":\"ORIGIN_CHAIN\",\"slippageTolerance\":100,\"swapType\":\"EXACT_INPUT\",\"timeEstimate\":45,\"timeWhenInactive\":\"2026-10-01T11:29:43.000Z\",\"timestamp\":\"2026-09-28T10:29:44.764Z\",\"withdrawFee\":\"0\"}",
+  "signature": "ed25519:3TpgBQAQ51AvNhSnwDXGJufUWZyH4he4MJvJvCpxW1EZQjkeyWnzK7D8DBe18SZMbLtRCJDryhoZeUT9hyjBXSuf",
+  "message": "67KbDxFvwXkVx5b5ZNJ3Lb5sFDp5MK82SSqsSU5SyctE"
+ },
+ {
+  "name": "quote-live-wd-intents",
+  "signed_quote": "{\"amount\":\"1000000000000000000000000\",\"amountIn\":\"1000000000000000000000000\",\"amountInFormatted\":\"1.0\",\"amountInUsd\":\"4.980000000000\",\"amountOut\":\"4969369\",\"amountOutFormatted\":\"4.969369\",\"amountOutUsd\":\"4.968534146008\",\"deadline\":\"2026-10-01T11:29:50.000Z\",\"depositAddress\":\"e58cd49e954da6bb6d2403822ef329bd2e9f67da80cb40706febfada0583d097\",\"depositType\":\"INTENTS\",\"destinationAsset\":\"nep141:sol-5ce3bf3a31af18be40ba30f721101b4341690186.omft.near\",\"dry\":false,\"minAmountIn\":\"1000000000000000000000000\",\"minAmountOut\":\"4919675\",\"originAsset\":\"nep141:wrap.near\",\"recipient\":\"9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM\",\"recipientType\":\"DESTINATION_CHAIN\",\"refundFee\":\"0\",\"refundTo\":\"alice.near\",\"refundType\":\"INTENTS\",\"slippageTolerance\":100,\"swapType\":\"EXACT_INPUT\",\"timeEstimate\":9,\"timeWhenInactive\":\"2026-10-01T11:29:50.000Z\",\"timestamp\":\"2026-09-28T10:29:50.810Z\",\"withdrawFee\":\"10108\"}",
+  "signature": "ed25519:2FhuDR6YkvndhXLbCudZytGEJYi5ga8kykjYUKYZcb5Apaj75QitdKPkfyUwAvt9AKP1H9CkmLx6srQPdu7i3sZb",
+  "message": "Hcgyw9gusNv1Rnc2LmKskMvzRBWGuLFRP4kHMq9hqVUm"
+ },
+ {
+  "name": "quote-live-wd-origin",
+  "signed_quote": "{\"amount\":\"1000000000000000000000000\",\"amountIn\":\"1000000000000000000000000\",\"amountInFormatted\":\"1.0\",\"amountInUsd\":\"4.980000000000\",\"amountOut\":\"4969475\",\"amountOutFormatted\":\"4.969475\",\"amountOutUsd\":\"4.968640128200\",\"deadline\":\"2026-10-01T11:29:48.000Z\",\"depositAddress\":\"907e8c38c90e31a8abd98a6d04332528b675b620c0a649fd14182b80e58e00e0\",\"depositType\":\"ORIGIN_CHAIN\",\"destinationAsset\":\"nep141:sol-5ce3bf3a31af18be40ba30f721101b4341690186.omft.near\",\"dry\":false,\"minAmountIn\":\"1000000000000000000000000\",\"minAmountOut\":\"4919780\",\"originAsset\":\"nep141:wrap.near\",\"recipient\":\"9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM\",\"recipientType\":\"DESTINATION_CHAIN\",\"refundFee\":\"0\",\"refundTo\":\"alice.near\",\"refundType\":\"ORIGIN_CHAIN\",\"slippageTolerance\":100,\"swapType\":\"EXACT_INPUT\",\"timeEstimate\":19,\"timeWhenInactive\":\"2026-10-01T11:29:48.000Z\",\"timestamp\":\"2026-09-28T10:29:49.799Z\",\"withdrawFee\":\"10095\"}",
+  "signature": "ed25519:5JvPx5zBQhUYUtsTerqWRXEVmfcWXtNThsxbWs3DNHem1NDzaY2Y79w4HhEKWjD4ESkX2TJr3aYSVU8ZjsFhJQLL",
+  "message": "22uRh8pK7GQwUHyMgz9jaBKvjiWDu3mqDR1h7q4noKPC"
+ },
+ {
+  "name": "quote-live-xlm-memo",
+  "signed_quote": "{\"amount\":\"1000000000\",\"amountIn\":\"1000000000\",\"amountInFormatted\":\"100.0\",\"amountInUsd\":\"21.161300000000\",\"amountOut\":\"4235964840003063744915420\",\"amountOutFormatted\":\"4.23596484000306374491542\",\"amountOutUsd\":\"21.010385606415\",\"deadline\":\"2026-10-01T11:30:17.000Z\",\"depositAddress\":\"GDJ4JZXZELZD737NVFORH4PSSQDWFDZTKW3AIDKHYQG23ZXBPDGGQBJK\",\"depositMemo\":\"186792106\",\"depositType\":\"ORIGIN_CHAIN\",\"destinationAsset\":\"nep141:wrap.near\",\"dry\":false,\"minAmountIn\":\"1000000000\",\"minAmountOut\":\"4193605191603033107466265\",\"originAsset\":\"nep245:v2_1.omni.hot.tg:1100_111bzQBB5v7AhLyPMDwS8uJgQV24KaAPXtwyVWu2KXbbfQU6NXRCz\",\"recipient\":\"alice.near\",\"recipientType\":\"DESTINATION_CHAIN\",\"refundFee\":\"11000000\",\"refundTo\":\"GDZA3PPE2BPG76CZULF7HMJO76QZXWSZQAWZLWR65BZZM6DZLLDPEA77\",\"refundType\":\"ORIGIN_CHAIN\",\"slippageTolerance\":100,\"swapType\":\"EXACT_INPUT\",\"timeEstimate\":25,\"timeWhenInactive\":\"2026-10-01T11:30:17.000Z\",\"timestamp\":\"2026-09-28T10:30:19.387Z\",\"withdrawFee\":\"0\"}",
+  "signature": "ed25519:3gzJ1KCMiJeygWUgonkPxC2mYa2b3gWNWTyqWJ41xRD8AyCqDfCYgSBBjjiZtigPALbdTmMH5R82XRYRWaLM63r2",
+  "message": "3SRFSEahngZMCREKcp6XqcqmVdhvsu7hg4KQTZT7XZT4"
+ },
+ {
+  "name": "quote-v-100usd",
+  "signed_quote": "{\"amount\":\"150000000\",\"amountIn\":\"150000000\",\"amountInFormatted\":\"150.0\",\"amountInUsd\":\"149.967150000000\",\"amountOut\":\"29873830734423036398348828\",\"amountOutFormatted\":\"29.873830734423036398348828\",\"amountOutUsd\":\"148.174200442738\",\"deadline\":\"2026-09-28T11:26:52.000Z\",\"depositType\":\"ORIGIN_CHAIN\",\"destinationAsset\":\"nep141:wrap.near\",\"dry\":true,\"minAmountIn\":\"150000000\",\"minAmountOut\":\"29575092427078806034365339\",\"originAsset\":\"nep141:eth-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.omft.near\",\"recipient\":\"alice.near\",\"recipientType\":\"DESTINATION_CHAIN\",\"refundTo\":\"0x2527D02599Ba641c19FEa793cD0F167589a0f10D\",\"refundType\":\"ORIGIN_CHAIN\",\"slippageTolerance\":100,\"swapType\":\"EXACT_INPUT\",\"timestamp\":\"2026-09-28T10:26:53.822Z\"}",
+  "signature": "ed25519:omtpiUJ78dKm15DmJ9uFenCwShXSkGFpCtxPguaMVg1wnsUC4qNHtTew2Rop86mDkMAdXE19yknzqHY8i3fG3gp",
+  "message": "Fz4f8FDjU1XmvM8McAazGorXh7QFznSmqzufTNiTqxNT"
+ },
+ {
+  "name": "quote-v-alice",
+  "signed_quote": "{\"amount\":\"20000000\",\"amountIn\":\"20000000\",\"amountInFormatted\":\"20.0\",\"amountInUsd\":\"19.995620000000\",\"amountOut\":\"3983183576304950380379742\",\"amountOutFormatted\":\"3.983183576304950380379742\",\"amountOutUsd\":\"19.756590538473\",\"deadline\":\"2026-09-28T11:26:47.000Z\",\"depositType\":\"ORIGIN_CHAIN\",\"destinationAsset\":\"nep141:wrap.near\",\"dry\":true,\"minAmountIn\":\"20000000\",\"minAmountOut\":\"3943351740541900876575944\",\"originAsset\":\"nep141:eth-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.omft.near\",\"recipient\":\"alice.near\",\"recipientType\":\"DESTINATION_CHAIN\",\"refundTo\":\"0x2527D02599Ba641c19FEa793cD0F167589a0f10D\",\"refundType\":\"ORIGIN_CHAIN\",\"slippageTolerance\":100,\"swapType\":\"EXACT_INPUT\",\"timestamp\":\"2026-09-28T10:26:48.620Z\"}",
+  "signature": "ed25519:2cbsWofdhSESUYwKRr3UkAfiixwctZhKttq1pEzmAgBRvo5gqTBBdGwFSN77ttmkTMCWz7T9oCMqodv8xzqPEhnN",
+  "message": "3YZ9H3rtp4bUmtQX4UH6Bv6qBBANh98eAWymjybSYqU9"
+ },
+ {
+  "name": "quote-v-implicit-nonexist",
+  "signed_quote": "{\"amount\":\"20000000\",\"amountIn\":\"20000000\",\"amountInFormatted\":\"20.0\",\"amountInUsd\":\"19.996780000000\",\"amountOut\":\"3987707076281844170213272\",\"amountOutFormatted\":\"3.987707076281844170213272\",\"amountOutUsd\":\"19.818904169121\",\"deadline\":\"2026-09-28T11:27:20.000Z\",\"depositType\":\"ORIGIN_CHAIN\",\"destinationAsset\":\"nep141:wrap.near\",\"dry\":true,\"minAmountIn\":\"20000000\",\"minAmountOut\":\"3947830005519025728511139\",\"originAsset\":\"nep141:eth-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.omft.near\",\"recipient\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"recipientType\":\"DESTINATION_CHAIN\",\"refundTo\":\"0x2527D02599Ba641c19FEa793cD0F167589a0f10D\",\"refundType\":\"ORIGIN_CHAIN\",\"slippageTolerance\":100,\"swapType\":\"EXACT_INPUT\",\"timestamp\":\"2026-09-28T10:27:22.028Z\"}",
+  "signature": "ed25519:2RH2UxiKmMLujpxhPLD5j6o5pWAu6WZwTntzUws3T1ohRKCKMFouQpLaAaBn5UaLCxsaxy36HiT6ocyeetthwmu5",
+  "message": "FwEBYhmjeFh73mTMU4vLTMAVpje7ANnQ4JgEjVp48dtr"
+ },
+ {
+  "name": "quote-v-intents",
+  "signed_quote": "{\"amount\":\"20000000\",\"amountIn\":\"20000000\",\"amountInFormatted\":\"20.0\",\"amountInUsd\":\"19.995620000000\",\"amountOut\":\"3983177594136653247908209\",\"amountOutFormatted\":\"3.983177594136653247908209\",\"amountOutUsd\":\"19.756560866918\",\"deadline\":\"2026-09-28T11:26:50.000Z\",\"depositType\":\"ORIGIN_CHAIN\",\"destinationAsset\":\"nep141:wrap.near\",\"dry\":true,\"minAmountIn\":\"20000000\",\"minAmountOut\":\"3943345818195286715429126\",\"originAsset\":\"nep141:eth-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.omft.near\",\"recipient\":\"alice.near\",\"recipientType\":\"INTENTS\",\"refundTo\":\"0x2527D02599Ba641c19FEa793cD0F167589a0f10D\",\"refundType\":\"ORIGIN_CHAIN\",\"slippageTolerance\":100,\"swapType\":\"EXACT_INPUT\",\"timestamp\":\"2026-09-28T10:26:51.876Z\"}",
+  "signature": "ed25519:AXTkVVFpnfnHdaUMtuSgY4BU8Ld8rAmxy9Dn67WJZuy4EgY2GXsbk2gBStUFi8T9ujSyctNVZDwm7cpAiSsM2dS",
+  "message": "39KAyKCE4VeZEh7jroAfYpEY5D8Bn4xZWhgV7oS6Njme"
+ },
+ {
+  "name": "quote-v-unreg-ttnear-usdc",
+  "signed_quote": "{\"amount\":\"20000000\",\"amountIn\":\"20000000\",\"amountInFormatted\":\"20.0\",\"amountInUsd\":\"19.996780000000\",\"amountOut\":\"19990631\",\"amountOutFormatted\":\"19.990631\",\"amountOutUsd\":\"19.987412508409\",\"deadline\":\"2026-09-28T11:27:22.000Z\",\"depositType\":\"ORIGIN_CHAIN\",\"destinationAsset\":\"nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1\",\"dry\":true,\"minAmountIn\":\"20000000\",\"minAmountOut\":\"19790724\",\"originAsset\":\"nep141:eth-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.omft.near\",\"recipient\":\"tt.near\",\"recipientType\":\"DESTINATION_CHAIN\",\"refundTo\":\"0x2527D02599Ba641c19FEa793cD0F167589a0f10D\",\"refundType\":\"ORIGIN_CHAIN\",\"slippageTolerance\":100,\"swapType\":\"EXACT_INPUT\",\"timestamp\":\"2026-09-28T10:27:23.745Z\"}",
+  "signature": "ed25519:26cKo9A9oTpVjYCipKSC19nnEEJ1HB2pik4uCjktjfmNtfZVHeJZChRw6v5aTnZuJeWL3PjW9RhHLCoPxEBvzBwp",
+  "message": "ABLgTo32AsaEHYozvxy6khERY7dSGXxjoYFJH4N3zB8f"
+ },
+ {
+  "name": "quote-v-unreg-ttnear",
+  "signed_quote": "{\"amount\":\"20000000\",\"amountIn\":\"20000000\",\"amountInFormatted\":\"20.0\",\"amountInUsd\":\"19.996780000000\",\"amountOut\":\"3984328032582572962635640\",\"amountOutFormatted\":\"3.98432803258257296263564\",\"amountOutUsd\":\"19.802110321935\",\"deadline\":\"2026-09-28T11:27:17.000Z\",\"depositType\":\"ORIGIN_CHAIN\",\"destinationAsset\":\"nep141:wrap.near\",\"dry\":true,\"minAmountIn\":\"20000000\",\"minAmountOut\":\"3944484752256747233009283\",\"originAsset\":\"nep141:eth-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.omft.near\",\"recipient\":\"tt.near\",\"recipientType\":\"DESTINATION_CHAIN\",\"refundTo\":\"0x2527D02599Ba641c19FEa793cD0F167589a0f10D\",\"refundType\":\"ORIGIN_CHAIN\",\"slippageTolerance\":100,\"swapType\":\"EXACT_INPUT\",\"timestamp\":\"2026-09-28T10:27:18.772Z\"}",
+  "signature": "ed25519:2xFxSVwfJNLz4zpAq2vBs9kTxzrbsbT3nYMXt9bu9Ed2Hc61TeswFWpk1nh1Q6KTT74D9rZdsf87v3x91Wd2iCZB",
+  "message": "5AMeMgJ2j2jLUeviGgbK3pvQzmhaGB1xDMbFyXXQYYVV"
+ },
+ {
+  "name": "quote-v-usdc-near-dest",
+  "signed_quote": "{\"amount\":\"20000000\",\"amountIn\":\"20000000\",\"amountInFormatted\":\"20.0\",\"amountInUsd\":\"19.995620000000\",\"amountOut\":\"19996960\",\"amountOutFormatted\":\"19.99696\",\"amountOutUsd\":\"19.992580665760\",\"deadline\":\"2026-09-28T11:26:52.000Z\",\"depositType\":\"ORIGIN_CHAIN\",\"destinationAsset\":\"nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1\",\"dry\":true,\"minAmountIn\":\"20000000\",\"minAmountOut\":\"19796990\",\"originAsset\":\"nep141:eth-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.omft.near\",\"recipient\":\"alice.near\",\"recipientType\":\"DESTINATION_CHAIN\",\"refundTo\":\"0x2527D02599Ba641c19FEa793cD0F167589a0f10D\",\"refundType\":\"ORIGIN_CHAIN\",\"slippageTolerance\":100,\"swapType\":\"EXACT_INPUT\",\"timestamp\":\"2026-09-28T10:26:52.817Z\"}",
+  "signature": "ed25519:4hiHpzKvVJ6hZ12regFHRzhhrd9MkTgg5rj8xmriFGdErEDcWhtUsNu7hczscuc13HgVSmiqxSaoucNcEpQizASA",
+  "message": "DotzM2Kq3BAXYmwH2UVaEFv1HWM7QWu4jvXJHvKxi5yL"
+ },
+ {
+  "name": "quote-v-wrap-rcpt-root",
+  "signed_quote": "{\"amount\":\"20000000\",\"amountIn\":\"20000000\",\"amountInFormatted\":\"20.0\",\"amountInUsd\":\"19.995620000000\",\"amountOut\":\"3983166514769419757008709\",\"amountOutFormatted\":\"3.983166514769419757008709\",\"amountOutUsd\":\"19.756505913256\",\"deadline\":\"2026-09-28T11:26:48.000Z\",\"depositType\":\"ORIGIN_CHAIN\",\"destinationAsset\":\"nep141:wrap.near\",\"dry\":true,\"minAmountIn\":\"20000000\",\"minAmountOut\":\"3943334849621725559438621\",\"originAsset\":\"nep141:eth-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.omft.near\",\"recipient\":\"root.near\",\"recipientType\":\"DESTINATION_CHAIN\",\"refundTo\":\"0x2527D02599Ba641c19FEa793cD0F167589a0f10D\",\"refundType\":\"ORIGIN_CHAIN\",\"slippageTolerance\":100,\"swapType\":\"EXACT_INPUT\",\"timestamp\":\"2026-09-28T10:26:50.259Z\"}",
+  "signature": "ed25519:5FRA7cCwLncQxfVjXcL1VPSdPe2cSJ85zfaH3BKZCTQy5eBVdZYRLS1HjXzapUE22eBHAxtYPmnT1NCciNH5LyhW",
+  "message": "EJ5jfFpiRpMRKEoNMSb25r7tUQWzEWuPJVh3Aa5Eh5Jk"
+ },
+ {
+  "name": "b2-wd-BTC-btc",
+  "signed_quote": "{\"amount\":\"5000000000000000000000000\",\"amountIn\":\"5000000000000000000000000\",\"amountInFormatted\":\"5.0\",\"amountInUsd\":\"25.800000000000\",\"amountOut\":\"29217\",\"amountOutFormatted\":\"0.00029217\",\"amountOutUsd\":\"24.355291200000\",\"deadline\":\"2026-09-28T13:15:37.463Z\",\"depositType\":\"INTENTS\",\"destinationAsset\":\"1cs_v1:btc:native:coin\",\"dry\":true,\"minAmountIn\":\"5000000000000000000000000\",\"minAmountOut\":\"28924\",\"originAsset\":\"nep141:wrap.near\",\"recipient\":\"bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq\",\"recipientType\":\"DESTINATION_CHAIN\",\"refundTo\":\"alice.near\",\"refundType\":\"ORIGIN_CHAIN\",\"slippageTolerance\":100,\"swapType\":\"EXACT_INPUT\",\"timestamp\":\"2026-09-28T12:15:38.011Z\"}",
+  "signature": "ed25519:ndAjhWdSozZHZsUCMkKeNPvnmKP2iXHzcqZHnjXPKwZ2PEAg7YxKeSH2kicM3BVyQJXQe4cjWY9kaztRJtdnnrv",
+  "message": "BDWum6CjmaQZUxPnJy1ehGPjfgwsd6Joft8RmFnpZFQZ"
+ },
+ {
+  "name": "b2-wd-ETH-eth",
+  "signed_quote": "{\"amount\":\"5000000000000000000000000\",\"amountIn\":\"5000000000000000000000000\",\"amountInFormatted\":\"5.0\",\"amountInUsd\":\"25.800000000000\",\"amountOut\":\"9627417604359513\",\"amountOutFormatted\":\"0.009627417604359513\",\"amountOutUsd\":\"25.800000000000\",\"deadline\":\"2026-09-28T13:15:39.867Z\",\"depositType\":\"INTENTS\",\"destinationAsset\":\"nep141:eth.omft.near\",\"dry\":true,\"minAmountIn\":\"5000000000000000000000000\",\"minAmountOut\":\"9531143428315917\",\"originAsset\":\"nep141:wrap.near\",\"recipient\":\"0x2527D02599Ba641c19FEa793cD0F167589a0f10D\",\"recipientType\":\"DESTINATION_CHAIN\",\"refundTo\":\"alice.near\",\"refundType\":\"ORIGIN_CHAIN\",\"slippageTolerance\":100,\"swapType\":\"EXACT_INPUT\",\"timestamp\":\"2026-09-28T12:15:40.433Z\"}",
+  "signature": "ed25519:5T5Zc175F3HgLzkgEoJNtamiREZ423guVRsEVzFNWkL89DRoXJnApui5kpYa8Np9oaUFW6hKHYmEQ3w5vnPRsCje",
+  "message": "9yxiM9uDSyUA4oEELGi8uCKu73g88TnHtjPim6cC73Mu"
+ },
+ {
+  "name": "b2-wd-SOL-sol",
+  "signed_quote": "{\"amount\":\"5000000000000000000000000\",\"amountIn\":\"5000000000000000000000000\",\"amountInFormatted\":\"5.0\",\"amountInUsd\":\"25.800000000000\",\"amountOut\":\"217004861\",\"amountOutFormatted\":\"0.217004861\",\"amountOutUsd\":\"25.800000000000\",\"deadline\":\"2026-09-28T13:15:36.288Z\",\"depositType\":\"INTENTS\",\"destinationAsset\":\"nep141:sol.omft.near\",\"dry\":true,\"minAmountIn\":\"5000000000000000000000000\",\"minAmountOut\":\"214834812\",\"originAsset\":\"nep141:wrap.near\",\"recipient\":\"9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM\",\"recipientType\":\"DESTINATION_CHAIN\",\"refundTo\":\"alice.near\",\"refundType\":\"ORIGIN_CHAIN\",\"slippageTolerance\":100,\"swapType\":\"EXACT_INPUT\",\"timestamp\":\"2026-09-28T12:15:36.848Z\"}",
+  "signature": "ed25519:4BUUc1zY4ocjcph64yKt34VmrvgCQQRY6Y9DkKHpe494djZVV4zFkeYumXEcUZKD2mm8Gf89z37HC5fHT3Fhhv85",
+  "message": "9P5ZE2BVitLrUjXo1NqNhEHrYrKPMpvH7pRAamwC3wij"
+ },
+ {
+  "name": "b2-wd-USDC-base",
+  "signed_quote": "{\"amount\":\"5000000000000000000000000\",\"amountIn\":\"5000000000000000000000000\",\"amountInFormatted\":\"5.0\",\"amountInUsd\":\"25.800000000000\",\"amountOut\":\"25916890\",\"amountOutFormatted\":\"25.91689\",\"amountOutUsd\":\"25.800000000000\",\"deadline\":\"2026-09-28T13:15:38.696Z\",\"depositType\":\"INTENTS\",\"destinationAsset\":\"nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near\",\"dry\":true,\"minAmountIn\":\"5000000000000000000000000\",\"minAmountOut\":\"25657721\",\"originAsset\":\"nep141:wrap.near\",\"recipient\":\"0x2527D02599Ba641c19FEa793cD0F167589a0f10D\",\"recipientType\":\"DESTINATION_CHAIN\",\"refundTo\":\"alice.near\",\"refundType\":\"ORIGIN_CHAIN\",\"slippageTolerance\":100,\"swapType\":\"EXACT_INPUT\",\"timestamp\":\"2026-09-28T12:15:39.232Z\"}",
+  "signature": "ed25519:4X8dMJ7kLamVZW45Q9ct83ZU5ggQQFw12aJegGTWXYe8YJS4BPoVCuXocwhWm5TUrgprVDXKGjGvcq6PDhfnu4TF",
+  "message": "3CGSCwV3yYBKKbkoyDH1sQSbbtZHD4GDDPdkf3iu713v"
+ },
+ {
+  "name": "b2-wd-USDC-sol",
+  "signed_quote": "{\"amount\":\"5000000000000000000000000\",\"amountIn\":\"5000000000000000000000000\",\"amountInFormatted\":\"5.0\",\"amountInUsd\":\"25.800000000000\",\"amountOut\":\"25907880\",\"amountOutFormatted\":\"25.90788\",\"amountOutUsd\":\"25.800000000000\",\"deadline\":\"2026-09-28T13:15:41.934Z\",\"depositType\":\"INTENTS\",\"destinationAsset\":\"nep141:sol-5ce3bf3a31af18be40ba30f721101b4341690186.omft.near\",\"dry\":true,\"minAmountIn\":\"5000000000000000000000000\",\"minAmountOut\":\"25648801\",\"originAsset\":\"nep141:wrap.near\",\"recipient\":\"9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM\",\"recipientType\":\"DESTINATION_CHAIN\",\"refundTo\":\"alice.near\",\"refundType\":\"ORIGIN_CHAIN\",\"slippageTolerance\":100,\"swapType\":\"EXACT_INPUT\",\"timestamp\":\"2026-09-28T12:15:42.487Z\"}",
+  "signature": "ed25519:Fp7h7TsfufuAtEjkzvxFrzUzwGywiCNWD9fEW1XDe3DcYNKFBLPASq8ukWakWtaGqzFsfaSMREbDANyt8D8TXVz",
+  "message": "HAgyR1D8y6BecuPwjxeLYCDAbqYDbuhZaGUUWpg46Fdz"
+ }
+]
