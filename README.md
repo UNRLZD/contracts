@@ -10,7 +10,7 @@ NEAR smart contracts for UNRLZD trading accounts.
 | `tests/` | near-workspaces sandbox tests. `testnet_e2e.rs` is `#[ignore]`d and only runs against testnet. |
 | `scripts/check-factory.sh` | A read-only check that a deployed factory matches the audited code and configuration pinned in an expected-values file (published with each release, outside this tree, since it holds this tree's own build hashes). |
 
-Status: **v1.4.6, not yet deployed to mainnet.**
+Status: **v1.4.7, not yet deployed to mainnet.**
 
 ## Build (reproducible)
 

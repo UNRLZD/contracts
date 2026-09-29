@@ -79,7 +79,7 @@ async fn race(
         if let Ok(r) = wait(s).await {
             if r.is_success() {
                 fired.push(id);
-            } else if format!("{:?}", r.into_result().err()).contains("E_RELAYER_SELL_ONLY") {
+            } else if format!("{:?}", r.into_result().err()).contains("E_RELAYER_WEEKLY") {
                 refused += 1;
             }
         }
@@ -93,6 +93,15 @@ async fn c1_m1_revoke_window_no_buy_fires() -> anyhow::Result<()> {
     let u = env.user("c1r", 6 * NEAR, (NEAR, 5 * NEAR)).await?;
     let sk = SecretKey::from_random(KeyType::ED25519);
     let auto = set_automation(&env, &u, &sk).await?;
+    // v1.4.7: relayer BUYS are allowed but weekly-charged; allowance 0 makes any fire by a
+    // role-set key fail E_RELAYER_WEEKLY, while a key misclassified as a device would fill.
+    ok(u.owner
+        .call(&u.account, "owner_set_relayer_allowance")
+        .args_json(json!({"weekly_yocto": "0"}))
+        .deposit(NearToken::from_yoctonear(1))
+        .gas(Gas::from_tgas(30))
+        .transact()
+        .await?)?;
     let ids = buy_orders(&env, &u, 24).await?;
     let revoke = u
         .owner
@@ -118,6 +127,15 @@ async fn c1_m1_rotation_window_no_buy_fires() -> anyhow::Result<()> {
     let u = env.user("c1t", 6 * NEAR, (NEAR, 5 * NEAR)).await?;
     let (sk1, sk2) = (SecretKey::from_random(KeyType::ED25519), SecretKey::from_random(KeyType::ED25519));
     let old = set_automation(&env, &u, &sk1).await?;
+    // v1.4.7: relayer BUYS are allowed but weekly-charged; allowance 0 makes any fire by a
+    // role-set key fail E_RELAYER_WEEKLY, while a key misclassified as a device would fill.
+    ok(u.owner
+        .call(&u.account, "owner_set_relayer_allowance")
+        .args_json(json!({"weekly_yocto": "0"}))
+        .deposit(NearToken::from_yoctonear(1))
+        .gas(Gas::from_tgas(30))
+        .transact()
+        .await?)?;
     let new = Account::from_secret_key(u.account.clone(), sk2.clone(), &env.worker);
     let ids = buy_orders(&env, &u, 24).await?;
     let rotate = u

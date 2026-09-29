@@ -150,7 +150,7 @@ async fn upgrade_path_via_owner_upgrade() -> anyhow::Result<()> {
     ok(env.exec(d, acc, env.buy_ops(NEAR / 2, 1, true), "pre", NEAR).await?)?;
     let spent = env.day_spent(&u).await?;
     assert_eq!(env.global_hash(acc).await?, Some(env.code_hash.clone()));
-    assert_eq!(env.config(acc).await?["version"], "1.4.6");
+    assert_eq!(env.config(acc).await?["version"], "1.4.7");
 
     let v2 = env.deploy_global(out("trading_account_upgrade_test")).await?;
     // only the owner, with 1 yocto; device key can't even call it

@@ -436,7 +436,7 @@ async fn intents_owner_path_and_upgrade() -> anyhow::Result<()> {
         .gas(Gas::from_tgas(100))
         .transact()
         .await?)?;
-    assert_eq!(env.config(&ta).await?["version"], "1.4.6");
+    assert_eq!(env.config(&ta).await?["version"], "1.4.7");
     assert_eq!(env.day_spent(&u).await?, spent);
     let c = Ctx { env: &env, u: &u, intents: intents.clone(), n: Default::default() };
     assert_eq!(env.worker.view(&ta, "get_oneclick_config").await?.json::<Option<Value>>()?, None);
@@ -532,7 +532,8 @@ async fn b1_setup(env: &Env, name: &str) -> anyhow::Result<(User, AccountId)> {
 }
 
 /// B1-M1: (a) a genuine quote that hides ~4.75 % unsigned appFees shows as signed USD loss ->
-/// E_QUOTE_LOSS; (b) a non-wNEAR token worth $5M is bounded by the USD daily cap.
+/// E_QUOTE_LOSS; (b) v1.4.7: no default USD cap; a non-wNEAR token worth $5M is bounded by an
+/// owner-set USD daily cap.
 #[tokio::test]
 async fn b1_m1_loss_bound_and_usd_cap() -> anyhow::Result<()> {
     let env = Env::new().await?;
@@ -547,7 +548,16 @@ async fn b1_m1_loss_bound_and_usd_cap() -> anyhow::Result<()> {
     // the same quote without the skim is funded
     let good = quote(&ta, NEAR, &addr(21), now + HOUR_NS);
     ok(c.signed_withdraw(NEAR, &good).await?)?;
-    // 5M USDC (6 decimals) signed at $5M: over the default $1,000 USD cap, not wNEAR-counted
+    // v1.4.7: no default USD cap (was $1,000): a quote signed at $1,500 is funded
+    assert_eq!(c.wday().await?["cap_usd"], u128::MAX.to_string());
+    let mut m = quote(&ta, NEAR / 2, &addr(23), now + HOUR_NS);
+    m["amountInUsd"] = "1500.000000000000".into();
+    m["amountOutUsd"] = "1499.000000000000".into();
+    ok(c.signed_withdraw(NEAR / 2, &m).await?)?;
+    assert_eq!(c.wday().await?["spent_usd"], "1504980000", "$4.98 + $1,500, no cap");
+    // the owner opts in to a $1,000 cap. 5M USDC (6 decimals) signed at $5M: over it, not
+    // wNEAR-counted
+    ok(c.owner("owner_set_withdraw_cap", json!({"daily_cap_usd": "1000000000"})).await?)?;
     let usdc: AccountId = "usdc.test.near".parse()?;
     let mut m = quote(&ta, 5_000_000_000_000, &addr(22), now + HOUR_NS);
     m["originAsset"] = format!("nep141:{usdc}").into();
@@ -558,7 +568,7 @@ async fn b1_m1_loss_bound_and_usd_cap() -> anyhow::Result<()> {
     fails_with(&c.device("withdraw_cross_chain", args).await?, "E_WITHDRAW_CAP");
     let d = c.wday().await?;
     assert_eq!(d["cap_usd"], "1000000000");
-    assert_eq!(d["spent_usd"], "4980000", "the funded $4.98 quote");
+    assert_eq!(d["spent_usd"], "1504980000", "the funded $4.98 and $1,500 quotes");
     Ok(())
 }
 

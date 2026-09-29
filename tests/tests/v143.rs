@@ -25,6 +25,15 @@ async fn set_automation(env: &Env, u: &User, sk: &SecretKey) -> anyhow::Result<A
         .gas(Gas::from_tgas(50))
         .transact()
         .await?)?;
+    // v1.4.7: relayer BUYS are allowed but weekly-charged; allowance 0 makes any fire by a
+    // role-set key fail E_RELAYER_WEEKLY, while a key misclassified as a device would fill.
+    ok(u.owner
+        .call(&u.account, "owner_set_relayer_allowance")
+        .args_json(json!({"weekly_yocto": "0"}))
+        .deposit(NearToken::from_yoctonear(1))
+        .gas(Gas::from_tgas(30))
+        .transact()
+        .await?)?;
     Ok(Account::from_secret_key(u.account.clone(), sk.clone(), &env.worker))
 }
 
@@ -78,7 +87,7 @@ async fn has_key(env: &Env, u: &User, sk: &SecretKey) -> anyhow::Result<bool> {
 }
 
 /// Invariant (C1-M1): an installed automation key is in the relayer role set, so a BUY fired
-/// with it is refused (E_RELAYER_SELL_ONLY).
+/// with it is refused (v1.4.7: E_RELAYER_WEEKLY at a 0 weekly allowance; was E_RELAYER_SELL_ONLY).
 async fn assert_installed_keys_are_relayers(
     env: &Env,
     u: &User,
@@ -96,7 +105,7 @@ async fn assert_installed_keys_are_relayers(
         let r = fire_buy(env, &by, u, order).await?;
         println!("  {name}: installed, in role set: {member}, BUY fire succeeded: {}", r.is_success());
         assert!(member, "{name} is installed but outside the relayer role set");
-        fails_with(&r, "E_RELAYER_SELL_ONLY");
+        fails_with(&r, "E_RELAYER_WEEKLY");
     }
     Ok(())
 }
@@ -232,7 +241,7 @@ async fn v143_promiseorder_migrated_owner_remove_key() -> anyhow::Result<()> {
         if let Ok(r) = wait(s).await {
             if r.is_success() {
                 fired.push(id);
-            } else if format!("{:?}", r.into_result().err()).contains("E_RELAYER_SELL_ONLY") {
+            } else if format!("{:?}", r.into_result().err()).contains("E_RELAYER_WEEKLY") {
                 refused += 1;
             }
         }

@@ -17,6 +17,12 @@ pub const DCL_REGISTRATION: NearToken = NearToken::from_millinear(500);
 const MAX_FEE_BPS: u16 = 100;
 // init also schedules wrap.storage_deposit (10 TGas, v1.1) + DCL registration (20 TGas per DCL dex, v1.2)
 const GAS_INIT: Gas = Gas::from_tgas(50);
+/// v1.4.7: init also installs the automation key (AddKey batch + 5 TGas on_automation_set).
+const GAS_INIT_AUTOMATION: Gas = Gas::from_tgas(70);
+/// v1.4.7: trading-account MIN_AUTOMATION_ALLOWANCE (the account re-checks it in init).
+const MIN_AUTOMATION_ALLOWANCE: u128 = 500_000_000_000_000_000_000_000;
+/// v1.4.7: "no cap" (trading-account UNLIMITED); used when create_account gets no caps.
+pub const UNLIMITED: u128 = u128::MAX;
 const GAS_CALLBACK: Gas = Gas::from_tgas(10);
 
 /// Same JSON shape as trading-account's Caps / Dex (passed through to `init`).
@@ -25,6 +31,16 @@ const GAS_CALLBACK: Gas = Gas::from_tgas(10);
 pub struct Caps {
     pub max_trade_yocto: U128,
     pub daily_cap_yocto: U128,
+}
+
+/// v1.4.7: an automation key (24/7 orders) the account installs in `init`. Same JSON shape as
+/// trading-account's AutomationInit.
+#[near(serializers = [json])]
+#[derive(Clone)]
+pub struct AutomationInit {
+    pub public_key: PublicKey,
+    pub allowance: U128,
+    pub weekly_yocto: Option<U128>,
 }
 
 #[near(serializers = [borsh, json])]
@@ -69,6 +85,8 @@ struct InitArgs<'a> {
     caps: &'a Caps,
     dex_allowlist: &'a [Dex],
     wrap: &'a AccountId,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    automation: Option<&'a AutomationInit>,
 }
 
 #[near(serializers = [json])]
@@ -111,12 +129,17 @@ impl Factory {
     /// DEVICE_METHODS. v1.2.1: the factory's own `created` entry storage is paid from the
     /// deposit (spam can't drain the factory); the rest goes to the account.
     #[payable]
+    /// v1.4.7: `caps` optional (default: no cap, UNLIMITED); optional `automation` = the owner's
+    /// automation key, installed by the account's `init` in the same batch (one signature).
     pub fn create_account(
         &mut self,
         device_public_key: Option<PublicKey>,
         device_public_keys: Option<Vec<PublicKey>>,
-        caps: Caps,
+        caps: Option<Caps>,
+        automation: Option<AutomationInit>,
     ) -> Promise {
+        let caps =
+            caps.unwrap_or(Caps { max_trade_yocto: U128(UNLIMITED), daily_cap_yocto: U128(UNLIMITED) });
         let owner = env::predecessor_account_id();
         let account = self.account_for(owner.clone());
         let full_deposit = env::attached_deposit();
@@ -130,6 +153,14 @@ impl Factory {
             || (1..keys.len()).any(|i| keys[..i].contains(&keys[i]))
         {
             env::panic_str("E_BAD_KEYS");
+        }
+        if let Some(a) = &automation {
+            if keys.contains(&a.public_key) {
+                env::panic_str("E_BAD_KEYS"); // a device key can't also be the relayer
+            }
+            if a.allowance.0 < MIN_AUTOMATION_ALLOWANCE {
+                env::panic_str("E_ALLOWANCE");
+            }
         }
         if !self.created.insert(account.clone()) {
             env::panic_str("E_EXISTS");
@@ -145,6 +176,7 @@ impl Factory {
             caps: &caps,
             dex_allowlist: &self.dex_allowlist,
             wrap: &self.wrap,
+            automation: automation.as_ref(),
         })
         .unwrap_or_else(|_| env::panic_str("E_JSON"));
         let mut batch = Promise::new(account.clone())
@@ -155,7 +187,8 @@ impl Factory {
             batch = batch.add_access_key_allowance(k, Allowance::Unlimited, account.clone(), DEVICE_METHODS);
         }
         // on failure the entry is removed again (its storage freed), so the FULL deposit is refunded
-        batch.function_call("init", args, NearToken::from_yoctonear(0), GAS_INIT).then(
+        let gas_init = if automation.is_some() { GAS_INIT_AUTOMATION } else { GAS_INIT };
+        batch.function_call("init", args, NearToken::from_yoctonear(0), gas_init).then(
             Self::ext(env::current_account_id()).with_static_gas(GAS_CALLBACK).on_create(
                 owner,
                 account,

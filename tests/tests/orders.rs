@@ -110,8 +110,16 @@ async fn a_automation_key_only_execute_order() -> anyhow::Result<()> {
         .find(|k| k["access_key"]["permission"]["FunctionCall"]["method_names"] == json!(["execute_order"]))
         .expect("automation key");
     assert_eq!(ak["access_key"]["permission"]["FunctionCall"]["allowance"], json!(NEAR.to_string()));
-    // v1.4.1 (D6): it reaches execute_order, but a BUY order is refused (sell-only relayer)
-    fails_with(&exec_order(&auto, &u, id, order_ops(&env, NEAR / 10, 1)).await?, "E_RELAYER_SELL_ONLY");
+    // it reaches execute_order. v1.4.7: a BUY order fires (weekly-charged; tests/v147.rs); at a 0
+    // weekly allowance it is refused with E_RELAYER_WEEKLY (was E_RELAYER_SELL_ONLY)
+    ok(u.owner
+        .call(&u.account, "owner_set_relayer_allowance")
+        .args_json(json!({"weekly_yocto": "0"}))
+        .deposit(NearToken::from_yoctonear(1))
+        .gas(Gas::from_tgas(30))
+        .transact()
+        .await?)?;
+    fails_with(&exec_order(&auto, &u, id, order_ops(&env, NEAR / 10, 1)).await?, "E_RELAYER_WEEKLY");
     Ok(())
 }
 
@@ -305,7 +313,7 @@ async fn upgrade_from_v1_2_keeps_state() -> anyhow::Result<()> {
         .transact()
         .await?)?;
     assert_eq!(env.global_hash(&u.account).await?, Some(v13));
-    assert_eq!(env.config(&u.account).await?["version"], "1.4.6");
+    assert_eq!(env.config(&u.account).await?["version"], "1.4.7");
     assert_eq!(env.day_spent(&u).await?, spent);
     fails_with(
         &env.exec(&u.device, &u.account, env.buy_ops(NEAR / 10, 1, false), "pre", NEAR).await?,

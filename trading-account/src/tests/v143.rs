@@ -89,7 +89,7 @@ fn v143_roleset_rotate_and_back_is_busy() {
     key_cb(PromiseResult::Successful(vec![]));
     c.on_automation_set(pk(7), Some(auto_pk()), Some(true));
     assert_eq!(c.get_relayer_keys(), vec![pk(7)]);
-    assert_eq!(buy_fire_by(&mut c, pk(7), id), "E_RELAYER_SELL_ONLY");
+    assert_eq!(buy_fire_by(&mut c, pk(7), id), "E_RELAYER_WEEKLY");
 }
 
 /// Defence in depth: a successful install always leaves the key in the role set, even after its
@@ -104,7 +104,7 @@ fn v143_roleset_installed_key_is_always_member() {
     c.on_automation_set(auto_pk(), None, Some(false)); // then the (re-)install succeeds
     assert_eq!(c.get_automation_key(), Some(auto_pk()));
     assert_eq!(c.get_relayer_keys(), vec![auto_pk()]);
-    assert_eq!(buy_fire_by(&mut c, auto_pk(), id), "E_RELAYER_SELL_ONLY");
+    assert_eq!(buy_fire_by(&mut c, auto_pk(), id), "E_RELAYER_WEEKLY");
 }
 
 /// migrate heals a v1.4.2 account already in the ROLESET-001 state and materializes a legacy set.
@@ -141,7 +141,7 @@ fn v143_legacy_owner_remove_key_keeps_relayer_until_deleted() {
     assert!(format!("{:?}", rs[0].actions[0]).starts_with("DeleteKey"), "{rs:?}");
     assert_eq!(c.get_automation_key(), None);
     assert_eq!(c.get_relayer_keys(), vec![auto_pk()]);
-    assert_eq!(buy_fire_by(&mut c, auto_pk(), id), "E_RELAYER_SELL_ONLY");
+    assert_eq!(buy_fire_by(&mut c, auto_pk(), id), "E_RELAYER_WEEKLY");
     assert!(!c.get_order(U64(id)).unwrap().pending);
     key_cb(PromiseResult::Successful(vec![]));
     c.on_relayer_key_deleted(auto_pk());

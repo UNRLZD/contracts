@@ -548,6 +548,7 @@ fn new_account() -> TradingAccount {
             Dex { id: a("dex.intear.near"), kind: DexKind::Plach },
         ],
         a("wrap.near"),
+        None,
     )
 }
 
@@ -2017,10 +2018,11 @@ fn execute_order_rejections() {
     type Case = (&'static str, Box<dyn Fn(&mut TradingAccount, u64)>);
     let cases: Vec<Case> = vec![
         (
-            // v1.4.1 (D6): the relayer (automation key) is sell-only
-            "E_RELAYER_SELL_ONLY",
+            // v1.4.1 (D6) sell-only; v1.4.7: relayer buys are bounded by the weekly allowance
+            "E_RELAYER_WEEKLY",
             Box::new(|c, id| {
                 ctx_pk(me().as_str(), Some(auto_pk()), 0, T0 + 2);
+                near_sdk::env::storage_write(b"ra", &0u128.to_le_bytes());
                 c.execute_order(U64(id), order_buy_ops(NEAR, 5));
             }),
         ),
@@ -2653,11 +2655,17 @@ mod v143;
 mod v144;
 mod v145;
 mod v146;
+mod v147;
+mod v147_init;
 
 // ======================= v1.4.2: re-audit C1 =======================
 
+/// Fires a stored BUY with `pk`. v1.4.7: relayer buys are allowed but charged in full to the
+/// weekly relayer allowance, which is set to 0 here: a relayer (role-set member) gets
+/// E_RELAYER_WEEKLY, a device key is never weekly-charged.
 fn buy_fire_by(c: &mut TradingAccount, pk: PublicKey, id: u64) -> String {
     ctx_pk(me().as_str(), Some(pk), 0, T0 + 2);
+    near_sdk::env::storage_write(b"ra", &0u128.to_le_bytes());
     panics(std::panic::AssertUnwindSafe(|| c.execute_order(U64(id), order_buy_ops(NEAR, 5))))
 }
 
@@ -2691,7 +2699,7 @@ fn c1_m1_revoked_relayer_stays_relayer_until_deletion_confirmed() {
         assert_eq!(c.get_automation_key(), None);
         assert_eq!(c.get_relayer_keys(), vec![auto_pk()]);
         // in the window: still the relayer
-        assert_eq!(buy_fire_by(&mut c, auto_pk(), id), "E_RELAYER_SELL_ONLY");
+        assert_eq!(buy_fire_by(&mut c, auto_pk(), id), "E_RELAYER_WEEKLY");
         ctx_pk(me().as_str(), Some(auto_pk()), 0, T0 + 3);
         assert_eq!(panics(std::panic::AssertUnwindSafe(|| c.lower_caps(caps(0, 0)))), "E_AUTOMATION_KEY");
         // deletion failed -> still a relayer
@@ -2716,8 +2724,8 @@ fn c1_m1_rotation_pending_and_retired_keys_are_relayers() {
         ctx("owner.near", 1, 10 * NEAR, T0 + 1);
         c.owner_set_automation_key(new_pk.clone(), U128(NEAR));
         assert_eq!(c.get_relayer_keys(), vec![auto_pk(), new_pk.clone()]);
-        assert_eq!(buy_fire_by(&mut c, new_pk.clone(), id), "E_RELAYER_SELL_ONLY");
-        assert_eq!(buy_fire_by(&mut c, auto_pk(), id), "E_RELAYER_SELL_ONLY");
+        assert_eq!(buy_fire_by(&mut c, new_pk.clone(), id), "E_RELAYER_WEEKLY");
+        assert_eq!(buy_fire_by(&mut c, auto_pk(), id), "E_RELAYER_WEEKLY");
         // the owner can't make a relayer key a device key meanwhile
         ctx("owner.near", 1, 10 * NEAR, T0 + 1);
         let pk = new_pk.clone();

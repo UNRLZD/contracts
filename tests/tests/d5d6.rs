@@ -66,9 +66,11 @@ async fn d6_relayer_sell_only_weekly_allowance() -> anyhow::Result<()> {
     // hold some MEME (device buy)
     ok(env.exec(&u.device, &u.account, env.buy_ops(NEAR, 1, true), "b", 2 * NEAR).await?)?;
     let held = env.ft_balance(env.meme.id(), &u.account).await?;
-    // BUY orders: refused to the relayer, executed by the device key (tab runner)
+    // v1.4.7: BUY orders (token_in == wrap) are fired by the relayer too (tests/v147.rs); an order
+    // with wrap on neither side stays refused to the relayer. The device key (tab runner) fires any.
+    let tt = place(&env, &u, &meme, "usdc.test.near", NEAR / 10, 1).await?;
+    fails_with(&fire(&auto, &u, tt, env.sell_ops(NEAR / 10, 1, false)).await?, "E_RELAYER_SELL_ONLY");
     let buy = place(&env, &u, &wrap, &meme, NEAR / 10, 1).await?;
-    fails_with(&fire(&auto, &u, buy, env.buy_ops(NEAR / 10, 1, false)).await?, "E_RELAYER_SELL_ONLY");
     ok(fire(&u.device, &u, buy, env.buy_ops(NEAR / 10, 1, false)).await?)?;
     // SELL orders: the relayer fires them; min_out counts toward the weekly allowance
     let part = held / 4;

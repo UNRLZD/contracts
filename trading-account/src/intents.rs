@@ -24,7 +24,10 @@ pub const DEFAULT_MAX_LOSS_BPS: u16 = 50;
 pub const MIN_MAX_LOSS_BPS: u16 = 30;
 pub const MAX_MAX_LOSS_BPS: u16 = 300;
 /// v1.4.1 (B1-M1): default daily withdraw cap in micro-USD (signed `amountInUsd`, all tokens).
-pub const DEFAULT_WITHDRAW_CAP_USD: u128 = 1_000_000_000; // $1,000
+/// v1.4.7: no default cap (was $1,000): u128::MAX, the UNLIMITED sentinel (the sum is checked,
+/// so `spent + x <= u128::MAX` always holds; an impossible overflow fails closed). The owner
+/// can still opt in to a cap with `owner_set_withdraw_cap`.
+pub const DEFAULT_WITHDRAW_CAP_USD: u128 = u128::MAX;
 /// v1.4.1 (B1-L3): funded deposit addresses kept (pruned after deadline + margin).
 pub const MAX_USED_QUOTES: usize = 128;
 pub const USED_QUOTE_MARGIN_NS: u64 = 3_600 * NS_PER_SEC;
@@ -569,7 +572,7 @@ pub fn save_withdraw_cap(v: u128) {
     write(K_WITHDRAW_CAP, &v)
 }
 
-/// v1.4.1: daily USD cap (micro-USD), default DEFAULT_WITHDRAW_CAP_USD.
+/// v1.4.1: daily USD cap (micro-USD), default DEFAULT_WITHDRAW_CAP_USD (v1.4.7: no cap).
 /// v1.4.6: the owner-set USD cap, None if never set.
 pub fn withdraw_cap_usd_set() -> Option<u128> {
     read(K_WITHDRAW_CAP_USD)

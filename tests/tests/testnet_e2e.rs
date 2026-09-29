@@ -592,7 +592,9 @@ async fn testnet_playground_deploy() -> anyhow::Result<()> {
     let code = out("trading_account");
     let hash = code_hash(&code);
     let factory_code = out("factory");
-    let factory_id: AccountId = format!("play.{}", deploy.id()).parse()?;
+    // NT_PLAY_SUB: the factory sub-account (default `play`; v1.4.7 playground: `play2`)
+    let sub = std::env::var("NT_PLAY_SUB").unwrap_or_else(|_| "play".into());
+    let factory_id: AccountId = format!("{sub}.{}", deploy.id()).parse()?;
     let factory_near = 5 * NEAR / 2;
     let need = code.len() as u128 * 10u128.pow(20) + factory_near + NEAR;
     let have = bal(&w, deploy.id()).await?;
@@ -624,9 +626,10 @@ async fn testnet_playground_deploy() -> anyhow::Result<()> {
     let after_global = bal(&w, deploy.id()).await?;
 
     let keys_dir = format!("{}/../.keys", env!("CARGO_MANIFEST_DIR"));
-    let key_path = format!("{keys_dir}/ntt-play-factory.json");
+    let key_name = format!("ntt-{sub}-factory");
+    let key_path = format!("{keys_dir}/{key_name}.json");
     let factory = if bal(&w, &factory_id).await.is_ok() {
-        acct(&w, "ntt-play-factory")?
+        acct(&w, &key_name)?
     } else {
         let sk = SecretKey::from_random(KeyType::ED25519);
         anyhow::ensure!(!std::path::Path::new(&key_path).exists(), "{key_path} exists");
@@ -637,7 +640,7 @@ async fn testnet_playground_deploy() -> anyhow::Result<()> {
             .to_string(),
         )?;
         let r = deploy
-            .create_subaccount("play")
+            .create_subaccount(&sub)
             .initial_balance(NearToken::from_yoctonear(factory_near))
             .keys(sk)
             .transact()
@@ -680,7 +683,8 @@ async fn testnet_playground_deploy() -> anyhow::Result<()> {
     );
     let path = format!("{}/../testnet-e2e.json", env!("CARGO_MANIFEST_DIR"));
     let mut doc: Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap_or("{}".into()))?;
-    doc["playground"] = json!({"factory": factory.id(), "code_hash": hash, "wasm_bytes": code.len(),
+    let slot = if sub == "play" { "playground".to_string() } else { format!("playground_{sub}") };
+    doc[slot.as_str()] = json!({"factory": factory.id(), "code_hash": hash, "wasm_bytes": code.len(),
         "global_deployer": deploy.id(), "min_funding": min, "fee_bps": 100, "fee_recipient": fees.id(),
         "dex_allowlist": [{"id": REF, "kind": "RheaClassic"}], "wrap": WRAP,
         "spent_yocto": spent.to_string(), "steps": log.0});

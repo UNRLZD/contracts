@@ -1120,6 +1120,41 @@ fn b1_m1_usd_cap_covers_all_tokens() {
     assert_eq!(panics(move || wcc(&mut c, "w2", 0, "usdc.near", 40_000_001, &q2)), "E_WITHDRAW_CAP");
 }
 
+/// v1.4.7: no default USD withdraw cap (was $1,000). A fresh account withdraws well over $1,000
+/// in one UTC day; a cap the owner sets still enforces.
+#[test]
+fn v147_no_default_withdraw_cap_owner_cap_enforces() {
+    // `usd` whole dollars of USDC, signed at $usd in / $(usd - 0.1) out
+    let usdc = |usd: u128, n: &str| {
+        signed(usd * 1_000_000, ACTIVE, |m| {
+            m["originAsset"] = "nep141:usdc.near".into();
+            m["depositAddress"] = ADDR.replace('e', n).into();
+            with_usd(m, &usd.to_string(), &format!("{}.9", usd - 1));
+        })
+    };
+    let mut c = intents_account();
+    let d = c.get_withdraw_day();
+    assert_eq!((d.cap_usd.0, d.cap_yocto.0), (u128::MAX, 5 * NEAR));
+    device_ctx(ACTIVE);
+    wcc(&mut c, "w1", 0, "usdc.near", 900_000_000, &usdc(900, "1"));
+    wcc(&mut c, "w2", 0, "usdc.near", 5_000_000_000_000, &usdc(5_000_000, "2"));
+    assert_eq!(c.get_withdraw_day().spent_usd.0, 5_000_900_000_000, "$5,000,900 in one day, no cap");
+    // the owner opts in to $1,000: $900 passes, $100.000001 more does not
+    let mut c = intents_account();
+    owner_ctx(T0);
+    c.owner_set_withdraw_cap(None, Some(U128(1_000_000_000)));
+    assert_eq!(c.get_withdraw_day().cap_usd.0, 1_000_000_000);
+    device_ctx(ACTIVE);
+    wcc(&mut c, "w1", 0, "usdc.near", 900_000_000, &usdc(900, "1"));
+    let q = signed(100_000_001, ACTIVE, |m| {
+        m["originAsset"] = "nep141:usdc.near".into();
+        m["depositAddress"] = ADDR.replace('e', "3").into();
+        with_usd(m, "100.000001", "100");
+    });
+    device_ctx(ACTIVE);
+    assert_eq!(panics(move || wcc(&mut c, "w2", 0, "usdc.near", 100_000_001, &q)), "E_WITHDRAW_CAP");
+}
+
 #[test]
 fn b1_m1_usd_settle_returns_unused() {
     let mut c = intents_account();

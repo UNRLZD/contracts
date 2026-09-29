@@ -233,8 +233,22 @@ impl TradingAccount {
         caps: Caps,
         dex_allowlist: Vec<Dex>,
         wrap: AccountId,
+        automation: Option<AutomationInit>,
     ) -> Self {
         require!(fee_config.fee_bps <= MAX_FEE_BPS, "E_FEE");
+        // v1.4.7: one-signature onboarding with 24/7 orders on. The factory passes the owner's
+        // automation key here (never as a raw AddKey in its batch): the account installs it
+        // through the same path as owner_set_automation_key, so it is in the relayer role set
+        // before its AddKey lands, and code that doesn't know this argument installs nothing.
+        if let Some(a) = automation {
+            if a.allowance.0 < MIN_AUTOMATION_ALLOWANCE {
+                fail("E_ALLOWANCE");
+            }
+            if let Some(w) = a.weekly_yocto {
+                env::storage_write(K_RELAYER_ALLOWANCE, &w.0.to_le_bytes());
+            }
+            schedule_automation_install(a.public_key, None, a.allowance.0);
+        }
         let me = env::current_account_id();
         // v1.1: register self on wNEAR so the first near_deposit is not skimmed for storage.
         let mut regs = vec![env::promise_create(
@@ -415,10 +429,24 @@ impl TradingAccount {
             fail("E_EXPIRED");
         }
         let mut relayer_week = None;
-        if relayer {
-            if order.token_out != self.wrap {
+        let mut relayer_buy = false;
+        // v1.4.7: the relayer also fires limit BUYS (token_in == wrap), exactly as stored; their
+        // whole NEAR spend (+ gas) is charged to the weekly allowance in `run`, once the spend is
+        // known. Orders with wrap on neither side stay device-only (E_RELAYER_SELL_ONLY).
+        if relayer && order.token_out != self.wrap {
+            if order.token_in != self.wrap {
                 fail("E_RELAYER_SELL_ONLY");
             }
+            // early refusal (before the order goes Pending): at least amount_in must still fit
+            let mut w = relayer_week_state();
+            roll_week(&mut w, now);
+            let allowance = relayer_allowance();
+            let min_charge = order.amount_in.0.max(allowance / MAX_RELAYER_FIRES_PER_WEEK);
+            if w.spent_yocto.checked_add(min_charge).is_none_or(|x| x > allowance) {
+                fail("E_RELAYER_WEEKLY");
+            }
+            relayer_buy = true;
+        } else if relayer {
             let mut w = relayer_week_state();
             roll_week(&mut w, now);
             // C1-L3: a fire costs max(min_out, allowance / MAX_RELAYER_FIRES_PER_WEEK)
@@ -436,11 +464,24 @@ impl TradingAccount {
         save_order(order_id.0, &order);
         self.sync_caps();
         let max_in = self.caps.max_trade_yocto.0;
-        self.run(ops, &format!("order:{}", order_id.0), max_in, now, Some((order_id.0, order, relayer_week)));
+        self.run(
+            ops,
+            &format!("order:{}", order_id.0),
+            max_in,
+            now,
+            Some((order_id.0, order, relayer_week, relayer_buy)),
+        );
     }
 
     /// Steps 4-8 of `execute` (spec), shared with `execute_order` (order = constraints).
-    fn run(&mut self, ops: Vec<Op>, client_order_id: &str, max_in: u128, now: u64, order: Option<OrderRun>) {
+    fn run(
+        &mut self,
+        ops: Vec<Op>,
+        client_order_id: &str,
+        max_in: u128,
+        now: u64,
+        mut order: Option<OrderRun>,
+    ) {
         self.sync_caps();
         let me = env::current_account_id();
         // 4: validate ops, compute spend + fee + native outflow
@@ -455,7 +496,7 @@ impl TradingAccount {
             fail("E_BAD_OP");
         }
         let last = ops.len() - 1;
-        let ord = order.as_ref().map(|(_, o, _)| o);
+        let ord = order.as_ref().map(|(_, o, _, _)| o);
         let mut order_swaps = 0;
         let mut order_wrapped: u128 = 0;
         // v1.2.1: StorageDeposit may only target wrap, an allowlisted DEX, or this execute's
@@ -633,6 +674,24 @@ impl TradingAccount {
         // A1-F1: charge the WHOLE prepaid gas of this receipt: it upper-bounds everything the tx
         // can make any receipt burn (every call below gets exactly its declared gas, weight 0).
         let gas_spend = self.charge_gas(env::prepaid_gas().as_gas());
+        // v1.4.7: a relayer BUY charges its whole spend (wNEAR/NEAR input + storage + max fee) and
+        // its gas bound to the weekly relayer allowance (at least allowance / 20 per fire, C1-L3).
+        // A provable refund later returns the part that came back (input + fee, and the floor's
+        // excess); storage and gas stay charged.
+        if let Some((_, _, rw, true)) = order.as_mut() {
+            let (counted, max_fee) = swap.map_or((0, 0), |s| (s.1, s.2));
+            let allowance = relayer_allowance();
+            let charge = spend.saturating_add(gas_spend).max(allowance / MAX_RELAYER_FIRES_PER_WEEK);
+            let kept = spend.saturating_sub(counted.saturating_add(max_fee)).saturating_add(gas_spend);
+            let mut w = relayer_week_state();
+            roll_week(&mut w, now);
+            match w.spent_yocto.checked_add(charge) {
+                Some(x) if x <= allowance => w.spent_yocto = x,
+                _ => fail("E_RELAYER_WEEKLY"),
+            }
+            save_relayer_week(&w);
+            *rw = Some((w.start_ns, charge.saturating_sub(kept)));
+        }
         ok(check_reserve(liquid_balance(), native_out));
         // 7: one promise per receiver, all independent; only the swap gets a callback.
         let mut batches: Vec<(AccountId, near_sdk::PromiseIndex)> = Vec::with_capacity(4);
@@ -746,7 +805,7 @@ impl TradingAccount {
                     f,
                     day_start,
                     proof.as_str(),
-                    order.as_ref().map_or(String::new(), |(id, _, rw)| {
+                    order.as_ref().map_or(String::new(), |(id, _, rw, _)| {
                         let r = rw.map_or(String::new(), |(w, c)| {
                             format!(",\"relayer_week\":\"{w}\",\"relayer_counted\":\"{c}\"")
                         });
@@ -1107,38 +1166,7 @@ impl TradingAccount {
         if relayer_keys().iter().any(|k| Some(k) != cur.as_ref()) {
             fail("E_AUTOMATION_BUSY");
         }
-        let me = env::current_account_id();
-        let mut p = Promise::new(me.clone());
-        let old = cur.filter(|o| *o != public_key);
-        if let Some(o) = &old {
-            p = p.delete_key(o.clone());
-        }
-        let allowance = near_sdk::Allowance::limited(NearToken::from_yoctonear(allowance.0))
-            .unwrap_or_else(|| fail("E_ALLOWANCE"));
-        // C1-M1: the new key is a relayer (role set) BEFORE its AddKey can land; the old one
-        // stays in the set until its DeleteKey is confirmed by on_automation_set.
-        let added = relayer_role_add(&public_key);
-        // v1.4.4 (SC-8): marks the install in flight until on_automation_set.
-        env::storage_write(
-            K_INSTALLING,
-            &near_sdk::borsh::to_vec(&public_key).unwrap_or_else(|_| fail("E_STATE")),
-        );
-        // A1-F2: the stored key changes only once the key batch has succeeded.
-        p.add_access_key_allowance(public_key.clone(), allowance, me.clone(), AUTOMATION_METHODS)
-            .then(
-                Promise::new(me).function_call(
-                    "on_automation_set",
-                    format!(
-                        "{{\"public_key\":{},\"old\":{},\"added\":{added}}}",
-                        jstr(&String::from(&public_key)),
-                        old.as_ref().map_or("null".to_string(), |o| jstr(&String::from(o)))
-                    )
-                    .into_bytes(),
-                    NearToken::from_yoctonear(0),
-                    Gas::from_tgas(GAS_AUTOMATION_CB),
-                ),
-            )
-            .detach();
+        schedule_automation_install(public_key, cur, allowance.0);
     }
 
     /// A1-F2: records the automation key after DeleteKey(old)+AddKey(new) succeeded; on failure
@@ -1529,12 +1557,13 @@ impl TradingAccount {
 
     /// Owner: daily caps of the cross-chain withdraw window (decision 6). `daily_cap_yocto`:
     /// wNEAR + gas bound (default = trading daily cap). `daily_cap_usd`: v1.4.1, micro-USD of
-    /// the signed `amountInUsd` of ALL tokens (default $1,000). Omitted = unchanged.
+    /// the signed `amountInUsd` of ALL tokens (v1.4.7: default no cap, was $1,000; the owner
+    /// opts in here). Omitted = unchanged.
     #[payable]
     pub fn owner_set_withdraw_cap(&mut self, daily_cap_yocto: Option<U128>, daily_cap_usd: Option<U128>) {
         self.assert_owner();
         // v1.4.5: `withdraw_cap_set{old_*, new_*}`. v1.4.6 (RA5-7): null = never set, for both caps
-        // (the yocto cap then follows the trading daily cap; the USD cap is $1,000)
+        // (the yocto cap then follows the trading daily cap; the USD cap is none, v1.4.7)
         let q = |v: Option<u128>| v.map_or("null".to_string(), |x| format!("\"{x}\""));
         let (old_y, old_u) = (intents::withdraw_cap(), intents::withdraw_cap_usd_set());
         if let Some(v) = daily_cap_yocto {
@@ -2143,7 +2172,24 @@ impl SwapProof {
 }
 
 /// (order id, order, relayer fire: (ISO week start, counted min_out)).
-type OrderRun = (u64, Order, Option<(u64, u128)>);
+/// v1.4.7: an automation key installed at account creation (`init`, from the factory).
+#[near(serializers = [json])]
+#[derive(Clone, Debug)]
+pub struct AutomationInit {
+    pub public_key: PublicKey,
+    /// gas allowance of the key (>= MIN_AUTOMATION_ALLOWANCE)
+    pub allowance: U128,
+    /// weekly relayer allowance; None = DEFAULT_RELAYER_WEEKLY
+    pub weekly_yocto: Option<U128>,
+}
+
+/// v1.4.7: "no cap". Caps are plain u128 and every cap sum is checked or saturating, so
+/// u128::MAX is a safe sentinel: `spent + x > UNLIMITED` is never true (checked_add fails
+/// closed on the impossible overflow). The factory uses it when no caps are passed.
+pub const UNLIMITED: u128 = u128::MAX;
+
+/// v1.4.7: + whether it is a relayer BUY (weekly charge made in `run`).
+type OrderRun = (u64, Order, Option<(u64, u128)>, bool);
 
 // v1.4.1 (D6) relayer weekly allowance, raw keys outside STATE
 const K_RELAYER_WEEK: &[u8] = b"rw";
@@ -2154,6 +2200,44 @@ pub const MAX_RELAYER_FIRES_PER_WEEK: u128 = 20;
 const K_RELAYER_KEYS: &[u8] = b"ar";
 pub const MAX_RELAYER_KEYS: usize = 8;
 const GAS_RELAYER_DELETE_CB: u64 = 5;
+
+/// The install / rotate batch of `owner_set_automation_key` (v1.4.7: also used by `init`):
+/// DeleteKey(old, if another key) + AddKey(public_key, execute_order only, gas `allowance`), then
+/// `on_automation_set`. The key joins the relayer role set BEFORE its AddKey can land.
+fn schedule_automation_install(public_key: PublicKey, cur: Option<PublicKey>, allowance: u128) {
+    let me = env::current_account_id();
+    let mut p = Promise::new(me.clone());
+    let old = cur.filter(|o| *o != public_key);
+    if let Some(o) = &old {
+        p = p.delete_key(o.clone());
+    }
+    let allowance = near_sdk::Allowance::limited(NearToken::from_yoctonear(allowance))
+        .unwrap_or_else(|| fail("E_ALLOWANCE"));
+    // C1-M1: the new key is a relayer (role set) BEFORE its AddKey can land; the old one
+    // stays in the set until its DeleteKey is confirmed by on_automation_set.
+    let added = relayer_role_add(&public_key);
+    // v1.4.4 (SC-8): marks the install in flight until on_automation_set.
+    env::storage_write(
+        K_INSTALLING,
+        &near_sdk::borsh::to_vec(&public_key).unwrap_or_else(|_| fail("E_STATE")),
+    );
+    // A1-F2: the stored key changes only once the key batch has succeeded.
+    p.add_access_key_allowance(public_key.clone(), allowance, me.clone(), AUTOMATION_METHODS)
+        .then(
+            Promise::new(me).function_call(
+                "on_automation_set",
+                format!(
+                    "{{\"public_key\":{},\"old\":{},\"added\":{added}}}",
+                    jstr(&String::from(&public_key)),
+                    old.as_ref().map_or("null".to_string(), |o| jstr(&String::from(o)))
+                )
+                .into_bytes(),
+                NearToken::from_yoctonear(0),
+                Gas::from_tgas(GAS_AUTOMATION_CB),
+            ),
+        )
+        .detach();
+}
 
 /// C1-M1: the relayer role set. Legacy (<= v1.4.1) state: just the stored automation key.
 fn relayer_keys() -> Vec<PublicKey> {
