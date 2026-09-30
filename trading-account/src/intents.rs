@@ -39,6 +39,10 @@ pub const MAX_QUOTE_AGE_NS: u64 = 3_600 * NS_PER_SEC;
 pub const QUOTE_FUTURE_SKEW_NS: u64 = 300 * NS_PER_SEC;
 /// Owner path: no signed deadline; 1Click deadlines are +72 h, keep a week.
 pub const OWNER_ADDR_KEEP_NS: u64 = 7 * DAY_NS;
+/// v1.4.8 (UNR-A-06): the owner space's own bound. Its markers live 7 days (device ones ~2 h),
+/// so the shared 128 capped the owner at 128 intents withdrawals per rolling week. 512 entries
+/// of 40 bytes (~20 KB, owner-paid storage) = ~73 a day.
+pub const MAX_OWNER_QUOTES: usize = 512;
 /// B2-H2: asset ids 1Click rewrites in the SIGNED `destinationAsset`/`originAsset` (request
 /// form -> signed form). Destinations may be registered in either form; both compare equal.
 pub const ASSET_ALIASES: [(&str, &str); 1] = [("nep141:btc.omft.near", "1cs_v1:btc:native:coin")];
@@ -627,14 +631,14 @@ pub fn is_quote_used(addr: &str, now: u64) -> bool {
     }
 }
 
-fn mark_in(store: &[u8], addr: &str, keep_until: u64, now: u64) -> Result<(), &'static str> {
+fn mark_in(store: &[u8], addr: &str, keep_until: u64, now: u64, max: usize) -> Result<(), &'static str> {
     let key = addr_bytes(addr);
     let mut v: Vec<([u8; 32], u64)> = read(store).unwrap_or_default();
     v.retain(|(_, t)| *t >= now);
     if v.iter().any(|(a, _)| *a == key) {
         return Err("E_QUOTE_REPLAY");
     }
-    if v.len() >= MAX_USED_QUOTES {
+    if v.len() >= max {
         return Err("E_QUOTES_FULL");
     }
     v.push((key, keep_until));
@@ -649,10 +653,10 @@ pub fn mark_quote_used(addr: &str, keep_until: u64, now: u64) -> Result<(), &'st
     if live_in(&owner_quotes(), &addr_bytes(addr), now) {
         return Err("E_QUOTE_REPLAY");
     }
-    mark_in(K_USED_QUOTES, addr, keep_until, now)
+    mark_in(K_USED_QUOTES, addr, keep_until, now, MAX_USED_QUOTES)
 }
 
 /// Owner path: its own marker space, checked only against itself.
 pub fn mark_owner_quote(addr: &str, keep_until: u64, now: u64) -> Result<(), &'static str> {
-    mark_in(K_OWNER_QUOTES, addr, keep_until, now)
+    mark_in(K_OWNER_QUOTES, addr, keep_until, now, MAX_OWNER_QUOTES)
 }

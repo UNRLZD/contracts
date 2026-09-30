@@ -61,7 +61,8 @@ fn settle_scheduled(c: &mut TradingAccount, result: PromiseResult) {
 /// max fee) plus the gas bound is charged to the weekly allowance.
 #[test]
 fn v147_relayer_fires_limit_buy_charged_in_full() {
-    let mut c = with_automation();
+    // v1.4.8: weekly accounting is opt-in
+    let mut c = with_automation_weekly(V147_DEFAULT_WEEKLY);
     let id = place_buy(&mut c, NEAR, 5);
     relayer_buy(&mut c, id, NEAR, 5);
     assert!(c.get_order(U64(id)).unwrap().pending);
@@ -134,14 +135,22 @@ fn v147_relayer_buy_bounded_by_weekly_allowance() {
 }
 
 /// A provable refund (wrap resolved 0) reopens the buy and returns input + fee to the week;
-/// storage and gas stay charged.
+/// storage and gas stay charged. v1.4.8 (RA7-1): so does the floor (allowance / 20).
 #[test]
 fn v147_relayer_buy_refund_keeps_storage_and_gas() {
-    let mut c = with_automation();
+    let mut c = with_automation_weekly(V147_DEFAULT_WEEKLY);
     let id = place_buy(&mut c, NEAR, 5);
     relayer_buy(&mut c, id, NEAR, 5);
     settle_scheduled(&mut c, ok_json(0));
     assert!(!c.get_order(U64(id)).unwrap().pending, "reopened");
+    let floor = V147_DEFAULT_WEEKLY / MAX_RELAYER_FIRES_PER_WEEK;
+    assert_eq!(week(&c), (STORAGE_OP + GAS300).max(floor));
+    // with an allowance whose floor is below storage + gas, storage + gas is what stays
+    // (its floor, 0.06 NEAR, is below storage + gas, 0.06125 NEAR)
+    let mut c = with_automation_weekly(12 * NEAR / 10);
+    let id = place_buy(&mut c, NEAR, 5);
+    relayer_buy(&mut c, id, NEAR, 5);
+    settle_scheduled(&mut c, ok_json(0));
     assert_eq!(week(&c), STORAGE_OP + GAS300);
 }
 

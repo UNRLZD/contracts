@@ -33,7 +33,7 @@ fn v147_init_installs_automation_key_through_role_set() {
     let add = format!("{:?}", add.expect("AddKey scheduled"));
     assert!(add.contains("execute_order") && !add.contains("execute,"), "{add}");
     ctx(me().as_str(), 0, NEAR, T0 + 1);
-    assert_eq!(c.get_relayer_week().allowance_yocto.0, 4 * NEAR);
+    assert_eq!(c.get_relayer_week().allowance_yocto, Some(U128(4 * NEAR)));
     assert_eq!(c.get_config().caps, caps(UNLIMITED, UNLIMITED));
     // the callback stores it, as for owner_set_automation_key
     testing_env!(

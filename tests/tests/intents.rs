@@ -436,7 +436,7 @@ async fn intents_owner_path_and_upgrade() -> anyhow::Result<()> {
         .gas(Gas::from_tgas(100))
         .transact()
         .await?)?;
-    assert_eq!(env.config(&ta).await?["version"], "1.4.7");
+    assert_eq!(env.config(&ta).await?["version"], "1.4.8");
     assert_eq!(env.day_spent(&u).await?, spent);
     let c = Ctx { env: &env, u: &u, intents: intents.clone(), n: Default::default() };
     assert_eq!(env.worker.view(&ta, "get_oneclick_config").await?.json::<Option<Value>>()?, None);

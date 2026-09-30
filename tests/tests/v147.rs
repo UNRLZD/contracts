@@ -62,6 +62,13 @@ async fn v147_relayer_fires_limit_buy() -> anyhow::Result<()> {
         .gas(Gas::from_tgas(50))
         .transact()
         .await?)?;
+    // v1.4.8: no default weekly allowance; opt into the former 10 NEAR default
+    ok(u.owner
+        .call(&u.account, "owner_set_relayer_allowance")
+        .args_json(json!({"weekly_yocto": (10 * NEAR).to_string()}))
+        .deposit(NearToken::from_yoctonear(1))
+        .transact()
+        .await?)?;
     let relayer = Account::from_secret_key(u.account.clone(), sk, &env.worker);
     let amount = NEAR / 10;
     let id = place_buy(&env, &u.device, &u.account, amount).await?;

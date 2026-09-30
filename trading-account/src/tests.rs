@@ -1718,6 +1718,17 @@ fn with_automation() -> TradingAccount {
     c
 }
 
+/// v1.4.8: no default weekly relayer allowance; tests of the weekly accounting opt into the
+/// former default (10 NEAR) explicitly.
+const V147_DEFAULT_WEEKLY: u128 = 10 * NEAR;
+
+fn with_automation_weekly(weekly: u128) -> TradingAccount {
+    let mut c = with_automation();
+    ctx("owner.near", 1, 10 * NEAR, T0);
+    c.owner_set_relayer_allowance(U128(weekly));
+    c
+}
+
 /// A1-F2: the key is stored by the success callback of the AddKey batch.
 fn automation_cb(c: &mut TradingAccount, pk: PublicKey, success: bool) {
     let rs = get_created_receipts();
@@ -2132,10 +2143,10 @@ fn d5_legacy_gas_tally_carries_into_utc_day() {
 
 #[test]
 fn d6_relayer_sell_only_and_weekly_allowance() {
-    let mut c = with_automation();
+    let mut c = with_automation_weekly(V147_DEFAULT_WEEKLY);
     ctx(me().as_str(), 0, 10 * NEAR, T0);
     let v = c.get_relayer_week();
-    assert_eq!(v.allowance_yocto.0, DEFAULT_RELAYER_WEEKLY);
+    assert_eq!(v.allowance_yocto, Some(U128(V147_DEFAULT_WEEKLY)));
     // T0 is a Friday: the ISO week starts Monday 00:00 UTC
     assert_eq!(v.start_ns.0, iso_week_start(T0));
     assert_eq!((v.start_ns.0 / DAY + 3) % 7, 0, "Monday");
@@ -2158,7 +2169,7 @@ fn d6_relayer_sell_only_and_weekly_allowance() {
     // owner raises the allowance
     ctx("owner.near", 1, 10 * NEAR, T0 + 5);
     c.owner_set_relayer_allowance(U128(20 * NEAR));
-    assert_eq!(c.get_relayer_week().allowance_yocto.0, 20 * NEAR);
+    assert_eq!(c.get_relayer_week().allowance_yocto, Some(U128(20 * NEAR)));
     // resets next Monday 00:00 UTC
     let next = c.get_relayer_week().resets_at_ns.0;
     ctx(me().as_str(), 0, 10 * NEAR, next);
@@ -2171,7 +2182,8 @@ fn d6_relayer_sell_only_and_weekly_allowance() {
 
 #[test]
 fn d6_failed_relayer_fire_returns_allowance() {
-    let mut c = with_automation();
+    let mut c = with_automation_weekly(V147_DEFAULT_WEEKLY);
+    let floor = V147_DEFAULT_WEEKLY / MAX_RELAYER_FIRES_PER_WEEK;
     let s1 = place_sell(&mut c, 10u128.pow(24), 4 * NEAR);
     relayer_fire(&mut c, s1, 10u128.pow(24), 4 * NEAR, T0 + 2);
     let rs = get_created_receipts();
@@ -2180,7 +2192,8 @@ fn d6_failed_relayer_fire_returns_allowance() {
         MockAction::FunctionCallWeight { args, .. } => near_sdk::serde_json::from_slice(args).unwrap(),
         x => panic!("{x:?}"),
     };
-    assert_eq!(args["relayer_counted"], (4 * NEAR).to_string());
+    // v1.4.8 (RA7-1): only the part above the floor is refundable
+    assert_eq!(args["relayer_counted"], (4 * NEAR - floor).to_string());
     let wk = args["relayer_week"].as_str().unwrap().parse::<u64>().unwrap();
     // swap failed (provable) -> order reopened and the allowance returned
     testing_env!(
@@ -2204,11 +2217,12 @@ fn d6_failed_relayer_fire_returns_allowance() {
         U64(D0),
         Some(U64(s1)),
         Some(U64(wk)),
-        Some(U128(4 * NEAR)),
+        Some(U128(4 * NEAR - floor)),
         None,
     );
     assert!(!c.get_order(U64(s1)).unwrap().pending, "reopened");
-    assert_eq!(c.get_relayer_week().spent_yocto.0, 0);
+    // the floor stays charged (<= 20 fires per week, failures included)
+    assert_eq!(c.get_relayer_week().spent_yocto.0, floor);
 }
 
 #[test]
@@ -2650,6 +2664,7 @@ fn a1_u06_pruned_pending_order_is_not_resurrected() {
     }
 }
 
+mod audit_a;
 mod intents;
 mod v143;
 mod v144;
@@ -2657,6 +2672,7 @@ mod v145;
 mod v146;
 mod v147;
 mod v147_init;
+mod v148;
 
 // ======================= v1.4.2: re-audit C1 =======================
 
@@ -2780,8 +2796,8 @@ fn c1_m1_role_set_bounded() {
 /// without limit.
 #[test]
 fn c1_l3_relayer_fire_floor() {
-    let mut c = with_automation();
-    let floor = DEFAULT_RELAYER_WEEKLY / MAX_RELAYER_FIRES_PER_WEEK;
+    let mut c = with_automation_weekly(V147_DEFAULT_WEEKLY);
+    let floor = V147_DEFAULT_WEEKLY / MAX_RELAYER_FIRES_PER_WEEK;
     let mut fired = 0;
     for i in 0..25u64 {
         let id = place_sell(&mut c, 10u128.pow(24), 1);
@@ -2797,7 +2813,7 @@ fn c1_l3_relayer_fire_floor() {
     ctx(me().as_str(), 0, 10 * NEAR, T0 + 100);
     assert_eq!(c.get_relayer_week().spent_yocto.0, floor * MAX_RELAYER_FIRES_PER_WEEK);
     // a large order counts its min_out
-    let mut c = with_automation();
+    let mut c = with_automation_weekly(V147_DEFAULT_WEEKLY);
     let id = place_sell(&mut c, 10u128.pow(24), 3 * NEAR);
     relayer_fire(&mut c, id, 10u128.pow(24), 3 * NEAR, T0 + 2);
     assert_eq!(c.get_relayer_week().spent_yocto.0, 3 * NEAR);

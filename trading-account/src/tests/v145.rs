@@ -207,7 +207,8 @@ fn v145_owner_setters_emit_old_and_new() {
     };
     assert!(
         ev("relayer_allowance_set").contains(&format!(
-            "\"old_weekly_yocto\":\"{DEFAULT_RELAYER_WEEKLY}\",\"new_weekly_yocto\":\"{}\"",
+            // v1.4.8: no default allowance: old = null
+            "\"old_weekly_yocto\":null,\"new_weekly_yocto\":\"{}\"",
             3 * NEAR
         )),
         "{:?}",

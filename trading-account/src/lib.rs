@@ -244,7 +244,8 @@ impl TradingAccount {
             if a.allowance.0 < MIN_AUTOMATION_ALLOWANCE {
                 fail("E_ALLOWANCE");
             }
-            if let Some(w) = a.weekly_yocto {
+            // v1.4.8: None (or UNLIMITED) = no weekly allowance: nothing stored
+            if let Some(w) = a.weekly_yocto.filter(|w| w.0 != UNLIMITED) {
                 env::storage_write(K_RELAYER_ALLOWANCE, &w.0.to_le_bytes());
             }
             schedule_automation_install(a.public_key, None, a.allowance.0);
@@ -408,10 +409,12 @@ impl TradingAccount {
         self.run(ops, &client_order_id, max_in_yocto.0, now, None);
     }
 
-    /// v1.3: execute an open order (predecessor == self). v1.4.1 (design D6): through the
-    /// automation key (24/7 relayer) only SELL orders (token_out == wrap), within the weekly
-    /// relayer allowance (Σ order.min_out per ISO week); any order through a device key (tab
-    /// runner, e.g. limit buys). The ops must be exactly one swap of the
+    /// v1.3: execute an open order (predecessor == self). Through the automation key (24/7
+    /// relayer): SELL orders (token_out == wrap) and, since v1.4.7, BUY orders (token_in ==
+    /// wrap); wrap on neither side is device-only. v1.4.8: no weekly limit by default; with an
+    /// owner-set weekly allowance (opt-in) sells charge max(min_out, floor) and buys their whole
+    /// spend + gas (at least the floor = allowance / 20) per ISO week. Any order through a device
+    /// key (tab runner). The ops must be exactly one swap of the
     /// order's token_in/amount_in on one of its DEXes into its token_out with parsed min_out
     /// >= the order's min_out, optionally preceded by NearDeposit (<= amount_in, buys),
     /// StorageDeposit and PlachRegisterAssets. Caps/fee/reserve/gas as `execute`. The order
@@ -430,35 +433,41 @@ impl TradingAccount {
         }
         let mut relayer_week = None;
         let mut relayer_buy = false;
-        // v1.4.7: the relayer also fires limit BUYS (token_in == wrap), exactly as stored; their
-        // whole NEAR spend (+ gas) is charged to the weekly allowance in `run`, once the spend is
-        // known. Orders with wrap on neither side stay device-only (E_RELAYER_SELL_ONLY).
+        // v1.4.7: the relayer also fires limit BUYS (token_in == wrap), exactly as stored. Orders
+        // with wrap on neither side stay device-only (E_RELAYER_SELL_ONLY).
+        // v1.4.8: the weekly allowance is opt-in. Without one (the default) there is no weekly
+        // accounting, no floor and no fire count; every per-fire check below and in `run` still
+        // applies. With one, a buy's whole NEAR spend (+ gas) is charged in `run`, once known.
         if relayer && order.token_out != self.wrap {
             if order.token_in != self.wrap {
                 fail("E_RELAYER_SELL_ONLY");
             }
-            // early refusal (before the order goes Pending): at least amount_in must still fit
-            let mut w = relayer_week_state();
-            roll_week(&mut w, now);
-            let allowance = relayer_allowance();
-            let min_charge = order.amount_in.0.max(allowance / MAX_RELAYER_FIRES_PER_WEEK);
-            if w.spent_yocto.checked_add(min_charge).is_none_or(|x| x > allowance) {
-                fail("E_RELAYER_WEEKLY");
+            if let Some(allowance) = relayer_allowance() {
+                // early refusal (before the order goes Pending): at least amount_in must fit
+                let mut w = relayer_week_state();
+                roll_week(&mut w, now);
+                let min_charge = order.amount_in.0.max(allowance / MAX_RELAYER_FIRES_PER_WEEK);
+                if w.spent_yocto.checked_add(min_charge).is_none_or(|x| x > allowance) {
+                    fail("E_RELAYER_WEEKLY");
+                }
+                relayer_buy = true;
             }
-            relayer_buy = true;
         } else if relayer {
-            let mut w = relayer_week_state();
-            roll_week(&mut w, now);
-            // C1-L3: a fire costs max(min_out, allowance / MAX_RELAYER_FIRES_PER_WEEK)
-            let allowance = relayer_allowance();
-            let charge = order.min_out.0.max(allowance / MAX_RELAYER_FIRES_PER_WEEK);
-            let spent = w.spent_yocto.checked_add(charge);
-            match spent {
-                Some(x) if x <= allowance => w.spent_yocto = x,
-                _ => fail("E_RELAYER_WEEKLY"),
+            if let Some(allowance) = relayer_allowance() {
+                let mut w = relayer_week_state();
+                roll_week(&mut w, now);
+                // C1-L3: a fire costs max(min_out, allowance / MAX_RELAYER_FIRES_PER_WEEK)
+                let floor = allowance / MAX_RELAYER_FIRES_PER_WEEK;
+                let charge = order.min_out.0.max(floor);
+                let spent = w.spent_yocto.checked_add(charge);
+                match spent {
+                    Some(x) if x <= allowance => w.spent_yocto = x,
+                    _ => fail("E_RELAYER_WEEKLY"),
+                }
+                save_relayer_week(&w);
+                // v1.4.8 (RA7-1): a provably failed fire gives back only what exceeds the floor
+                relayer_week = Some((w.start_ns, charge.saturating_sub(floor)));
             }
-            save_relayer_week(&w);
-            relayer_week = Some((w.start_ns, charge));
         }
         order.pending = true;
         save_order(order_id.0, &order);
@@ -569,7 +578,15 @@ impl TradingAccount {
                         proof = SwapProof::Wrap;
                         (amount.0, bps(amount.0, self.fee.fee_bps))
                     } else if s.out_is_near {
-                        (0, bps(s.min_out, self.fee.fee_bps))
+                        // v1.4.8 (UNR-A-01): an order fire's sell fee comes from the STORED
+                        // order's min_out (the user's bound), never from the msg's min_out that
+                        // the firing key chose (check_order_swap bounds that only from below).
+                        // The settled wNEAR output is not observable in on_swap_settled, and
+                        // an honest swap delivers >= the order's min_out, so this fee is
+                        // <= fee_bps x the actual output. Device `execute` keeps its own msg
+                        // bound (the device key is trusted with the balance, DR-1).
+                        let base = ord.map_or(s.min_out, |o| o.min_out.0.min(s.min_out));
+                        (0, bps(base, self.fee.fee_bps))
                     } else {
                         (0, 0)
                     };
@@ -582,6 +599,7 @@ impl TradingAccount {
                     if asset_ids.is_empty()
                         || asset_ids.len() > MAX_PLACH_ASSETS
                         || asset_ids.iter().any(|a| a.is_empty() || a.len() > MAX_ASSET_ID_LEN)
+                        || asset_ids.iter().any(|a| names_self(a, &me))
                     {
                         fail("E_BAD_OP");
                     }
@@ -614,6 +632,7 @@ impl TradingAccount {
                     if asset_id.is_empty()
                         || asset_id.len() > MAX_ASSET_ID_LEN
                         || amount.is_some_and(|a| a.0 == 0)
+                        || names_self(asset_id, &me)
                     {
                         fail("E_BAD_OP");
                     }
@@ -676,21 +695,24 @@ impl TradingAccount {
         let gas_spend = self.charge_gas(env::prepaid_gas().as_gas());
         // v1.4.7: a relayer BUY charges its whole spend (wNEAR/NEAR input + storage + max fee) and
         // its gas bound to the weekly relayer allowance (at least allowance / 20 per fire, C1-L3).
-        // A provable refund later returns the part that came back (input + fee, and the floor's
-        // excess); storage and gas stay charged.
+        // A provable refund later returns the part that came back (input + fee); storage, gas and
+        // (v1.4.8, RA7-1) the floor stay charged. v1.4.8: only with an owner-set allowance
+        // (`relayer_buy` is set only then, by execute_order in this same receipt).
         if let Some((_, _, rw, true)) = order.as_mut() {
-            let (counted, max_fee) = swap.map_or((0, 0), |s| (s.1, s.2));
-            let allowance = relayer_allowance();
-            let charge = spend.saturating_add(gas_spend).max(allowance / MAX_RELAYER_FIRES_PER_WEEK);
-            let kept = spend.saturating_sub(counted.saturating_add(max_fee)).saturating_add(gas_spend);
-            let mut w = relayer_week_state();
-            roll_week(&mut w, now);
-            match w.spent_yocto.checked_add(charge) {
-                Some(x) if x <= allowance => w.spent_yocto = x,
-                _ => fail("E_RELAYER_WEEKLY"),
+            if let Some(allowance) = relayer_allowance() {
+                let (counted, max_fee) = swap.map_or((0, 0), |s| (s.1, s.2));
+                let floor = allowance / MAX_RELAYER_FIRES_PER_WEEK;
+                let charge = spend.saturating_add(gas_spend).max(floor);
+                let kept = spend.saturating_sub(counted.saturating_add(max_fee)).saturating_add(gas_spend);
+                let mut w = relayer_week_state();
+                roll_week(&mut w, now);
+                match w.spent_yocto.checked_add(charge) {
+                    Some(x) if x <= allowance => w.spent_yocto = x,
+                    _ => fail("E_RELAYER_WEEKLY"),
+                }
+                save_relayer_week(&w);
+                *rw = Some((w.start_ns, charge.saturating_sub(kept.max(floor))));
             }
-            save_relayer_week(&w);
-            *rw = Some((w.start_ns, charge.saturating_sub(kept)));
         }
         ok(check_reserve(liquid_balance(), native_out));
         // 7: one promise per receiver, all independent; only the swap gets a callback.
@@ -901,6 +923,16 @@ impl TradingAccount {
                             save_relayer_week(&w);
                         }
                     }
+                    order_event("order_reopened", id.0);
+                } else if used == 0 && proof.as_deref() == Some(SwapProof::Token.as_str()) {
+                    // v1.4.8 (UNR-A-02): a user-chosen token_in resolved to "0" (Successful). An
+                    // honest NEP-141 does this when the DEX refused the swap (e.g. a min_out the
+                    // pool can't meet), so consuming the order let a firing key delete stop-losses
+                    // without a trade. Reopen it, but give nothing back to the relayer week (a
+                    // lying token can't refill it; A1-F4). Plach NEAR buys (ORDER-001) and
+                    // pre-v1.4.3 callbacks stay consumed.
+                    o.pending = false;
+                    save_order(id.0, &o);
                     order_event("order_reopened", id.0);
                 } else {
                     remove_order(id.0);
@@ -1364,8 +1396,14 @@ impl TradingAccount {
         };
         let mut finals = Vec::new();
         let mut report: Vec<(AccountId, U128)> = Vec::new();
+        // v1.4.8 (UNR-A-03): every deposit below is paid from the native liquid balance NOW (the
+        // unwrap lands later). Spend within it, cheapest items first (1 yocto each, then the
+        // registrations), and report what doesn't fit instead of reverting the whole receipt.
+        let mut budget = liquid_balance();
+        let mut keep: u128 = 0;
         let w = bal(0, &self.wrap);
-        if w > 0 {
+        if w > 0 && budget >= 1 {
+            budget -= 1;
             finals.push(env::promise_create(
                 self.wrap.clone(),
                 "near_withdraw",
@@ -1374,17 +1412,32 @@ impl TradingAccount {
                 Gas::from_tgas(GAS_NEAR_WITHDRAW),
             ));
             report.push((self.wrap.clone(), U128(w)));
+        } else if w > 0 {
+            withdraw_skipped(self.wrap.as_str(), w, &to, 1);
+            keep += 1;
         }
-        for (i, t) in tokens.iter().enumerate() {
-            let b = bal(1 + i as u64, t);
-            if b == 0 {
-                continue;
+        let items: Vec<(&AccountId, u128, bool)> = tokens
+            .iter()
+            .enumerate()
+            .map(|(i, t)| (t, bal(1 + i as u64, t), !registered(1 + n + i as u64)))
+            .filter(|(_, b, _)| *b > 0)
+            .collect();
+        for register in [false, true] {
+            for (t, b, _) in items.iter().filter(|x| x.2 == register) {
+                let cost = if register { MAX_STORAGE_DEPOSIT + 1 } else { 1 };
+                if budget < cost {
+                    withdraw_skipped(t.as_str(), *b, &to, cost);
+                    keep += cost;
+                    continue;
+                }
+                budget -= cost;
+                finals.push(ft_to(t, *b, &to, register));
+                report.push(((*t).clone(), U128(*b)));
             }
-            finals.push(ft_to(t, b, &to, !registered(1 + n + i as u64)));
-            report.push((t.clone(), U128(b)));
         }
-        let args =
-            serde_json::to_vec(&WithdrawReportArgs { to, items: report }).unwrap_or_else(|_| fail("E_JSON"));
+        let keep = (keep > 0).then_some(U128(keep));
+        let args = serde_json::to_vec(&WithdrawReportArgs { to, items: report, keep })
+            .unwrap_or_else(|_| fail("E_JSON"));
         let gas = Gas::from_tgas(GAS_REPORT_CB);
         if finals.is_empty() {
             let p = env::promise_batch_create(&me);
@@ -1403,15 +1456,21 @@ impl TradingAccount {
     }
 
     #[private]
-    pub fn on_withdraw_all_report(&mut self, to: AccountId, items: Vec<(AccountId, U128)>) {
+    pub fn on_withdraw_all_report(
+        &mut self,
+        to: AccountId,
+        items: Vec<(AccountId, U128)>,
+        keep: Option<U128>,
+    ) {
         let results = env::promise_results_count();
         for (i, (t, a)) in items.iter().enumerate() {
             let i = i as u64;
             let ok = i < results && !matches!(env::promise_result_checked(i, 0), Err(PromiseError::Failed));
             withdraw_event(t.as_str(), a.0, &to, ok);
         }
-        // native last: everything above the storage stake (incl. the unwrapped wNEAR)
-        let native = liquid_balance();
+        // native last: everything above the storage stake (incl. the unwrapped wNEAR), minus what
+        // the skipped items need for a second call (v1.4.8, UNR-A-03)
+        let native = liquid_balance().saturating_sub(keep.map_or(0, |k| k.0));
         if native > 0 {
             Promise::new(to.clone()).transfer(NearToken::from_yoctonear(native)).detach();
         }
@@ -1807,8 +1866,10 @@ impl TradingAccount {
         }
     }
 
-    /// v1.4.1 (D6): the relayer's weekly allowance (ISO week, Monday 00:00 UTC): Σ min_out of
-    /// the SELL orders it fired this week vs the owner-set allowance (default 10 NEAR).
+    /// v1.4.1 (D6): the relayer's weekly allowance (ISO week, Monday 00:00 UTC) and what its
+    /// fires were charged this week (sells: max(min_out, floor); buys since v1.4.7: spend + gas,
+    /// at least the floor). v1.4.8: `allowance_yocto` null = no weekly limit (the default); no
+    /// accounting runs then, so `spent_yocto` is not updated.
     pub fn get_relayer_week(&self) -> RelayerWeekView {
         let mut w = relayer_week_state();
         roll_week(&mut w, env::block_timestamp());
@@ -1816,20 +1877,29 @@ impl TradingAccount {
             start_ns: U64(w.start_ns),
             resets_at_ns: U64(w.start_ns + 7 * DAY_NS),
             spent_yocto: U128(w.spent_yocto),
-            allowance_yocto: U128(relayer_allowance()),
+            allowance_yocto: relayer_allowance().map(U128),
         }
     }
 
-    /// v1.4.1 (D6): owner sets the relayer's weekly allowance (yocto of order min_out).
+    /// v1.4.1 (D6): owner sets the relayer's weekly allowance (yocto per ISO week, see
+    /// get_relayer_week). v1.4.8: opt-in; UNLIMITED (u128::MAX) removes it (no weekly limit,
+    /// the default).
     #[payable]
     pub fn owner_set_relayer_allowance(&mut self, weekly_yocto: U128) {
         self.assert_owner();
         let old = relayer_allowance();
-        env::storage_write(K_RELAYER_ALLOWANCE, &weekly_yocto.0.to_le_bytes());
-        // v1.4.5: `relayer_allowance_set{old_weekly_yocto, new_weekly_yocto}`
+        if weekly_yocto.0 == UNLIMITED {
+            env::storage_remove(K_RELAYER_ALLOWANCE);
+        } else {
+            env::storage_write(K_RELAYER_ALLOWANCE, &weekly_yocto.0.to_le_bytes());
+        }
+        // v1.4.5: `relayer_allowance_set{old_weekly_yocto, new_weekly_yocto}`; v1.4.8: null = no
+        // weekly limit
+        let q = |v: Option<u128>| v.map_or("null".to_string(), |x| format!("\"{x}\""));
         env::log_str(&format!(
-            "EVENT_JSON:{{\"standard\":\"nttrade\",\"version\":\"1\",\"event\":\"relayer_allowance_set\",\"data\":{{\"old_weekly_yocto\":\"{old}\",\"new_weekly_yocto\":\"{}\"}}}}",
-            weekly_yocto.0
+            "EVENT_JSON:{{\"standard\":\"nttrade\",\"version\":\"1\",\"event\":\"relayer_allowance_set\",\"data\":{{\"old_weekly_yocto\":{},\"new_weekly_yocto\":{}}}}}",
+            q(old),
+            q(relayer_allowance())
         ));
     }
 
@@ -2084,7 +2154,8 @@ pub struct RelayerWeekView {
     pub start_ns: U64,
     pub resets_at_ns: U64,
     pub spent_yocto: U128,
-    pub allowance_yocto: U128,
+    /// v1.4.8: null = no weekly limit
+    pub allowance_yocto: Option<U128>,
 }
 
 /// v1.4.3 (OWNERBOUND-001): an owner cap raise, active at `active_at_ns`.
@@ -2179,7 +2250,7 @@ pub struct AutomationInit {
     pub public_key: PublicKey,
     /// gas allowance of the key (>= MIN_AUTOMATION_ALLOWANCE)
     pub allowance: U128,
-    /// weekly relayer allowance; None = DEFAULT_RELAYER_WEEKLY
+    /// weekly relayer allowance; v1.4.8: None (or UNLIMITED) = no weekly limit (was 10 NEAR)
     pub weekly_yocto: Option<U128>,
 }
 
@@ -2194,8 +2265,9 @@ type OrderRun = (u64, Order, Option<(u64, u128)>, bool);
 // v1.4.1 (D6) relayer weekly allowance, raw keys outside STATE
 const K_RELAYER_WEEK: &[u8] = b"rw";
 const K_RELAYER_ALLOWANCE: &[u8] = b"ra";
-pub const DEFAULT_RELAYER_WEEKLY: u128 = 10 * 1_000_000_000_000_000_000_000_000;
-/// C1-L3: each relayer fire costs at least allowance / 20 (so <= 20 fires per week at most).
+/// C1-L3: with an owner-set allowance, each relayer fire costs at least allowance / 20, and
+/// (v1.4.8, RA7-1) a failed fire keeps that floor charged: <= 20 fires per week, failures
+/// included. v1.4.8: there is no default allowance (was 10 NEAR).
 pub const MAX_RELAYER_FIRES_PER_WEEK: u128 = 20;
 const K_RELAYER_KEYS: &[u8] = b"ar";
 pub const MAX_RELAYER_KEYS: usize = 8;
@@ -2302,10 +2374,12 @@ fn retire_relayer_key(pk: PublicKey) {
         .detach();
 }
 
-fn relayer_allowance() -> u128 {
+/// v1.4.8: the owner-set weekly relayer allowance; None = no weekly limit (nothing stored, the
+/// default; a stored UNLIMITED, possible under v1.4.7, counts as none too).
+fn relayer_allowance() -> Option<u128> {
     env::storage_read(K_RELAYER_ALLOWANCE)
         .and_then(|b| b.try_into().ok().map(u128::from_le_bytes))
-        .unwrap_or(DEFAULT_RELAYER_WEEKLY)
+        .filter(|&a| a != UNLIMITED)
 }
 
 fn relayer_week_state() -> Day {
@@ -2399,6 +2473,10 @@ struct WithdrawAllArgs {
 struct WithdrawReportArgs {
     to: AccountId,
     items: Vec<(AccountId, U128)>,
+    /// v1.4.8 (UNR-A-03): native NEAR kept back for the skipped items' deposits, so the owner
+    /// can call again for them without a top-up (absent in pre-v1.4.8 in-flight callbacks).
+    #[serde(default)]
+    keep: Option<U128>,
 }
 
 /// `ft_transfer(to, amount)` on `token`, optionally after `storage_deposit(to,
@@ -2431,6 +2509,22 @@ fn ft_to(token: &AccountId, amount: u128, to: &AccountId, register: bool) -> nea
             Gas::from_tgas(GAS_FT_SEND),
         )
     }
+}
+
+/// v1.4.8 (UNR-A-05): a Plach asset id naming this account (`nep141:<self>`), refused like
+/// `token == self` in StorageDeposit / FtTransferCall / DexWithdraw (INV-16).
+fn names_self(asset_id: &str, me: &AccountId) -> bool {
+    asset_id.strip_prefix("nep141:") == Some(me.as_str())
+}
+
+/// v1.4.8 (UNR-A-03): an owner_withdraw_all item not sent because the native liquid balance
+/// can't pay its deposit (`needed_yocto`: 1 yocto, or + MAX_STORAGE_DEPOSIT to register `to`).
+/// Reported as `owner_withdraw{ok: false}` plus this event; top up NEAR and call again.
+fn withdraw_skipped(token: &str, amount: u128, to: &AccountId, needed: u128) {
+    withdraw_event(token, amount, to, false);
+    env::log_str(&format!(
+        "EVENT_JSON:{{\"standard\":\"nttrade\",\"version\":\"1\",\"event\":\"owner_withdraw_skipped\",\"data\":{{\"token\":\"{token}\",\"amount\":\"{amount}\",\"to\":\"{to}\",\"reason\":\"low_native\",\"needed_yocto\":\"{needed}\"}}}}"
+    ));
 }
 
 fn withdraw_event(token: &str, amount: u128, to: &AccountId, ok: bool) {

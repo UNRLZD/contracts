@@ -157,13 +157,20 @@ async fn c1_m1_rotation_window_no_buy_fires() -> anyhow::Result<()> {
 }
 
 /// C1-L3: a relayer fire costs max(min_out, allowance / 20): a sell with min_out = 1 yocto
-/// uses 0.5 NEAR of the default 10 NEAR weekly allowance (was 1 yocto).
+/// uses 0.5 NEAR of a 10 NEAR weekly allowance (was 1 yocto). v1.4.8: the allowance is opt-in
+/// (no default); the owner sets the former 10 NEAR default here.
 #[tokio::test]
 async fn c1_l3_relayer_fire_floor() -> anyhow::Result<()> {
     let env = Env::new().await?;
     let u = env.user("c1f", 6 * NEAR, (2 * NEAR, 5 * NEAR)).await?;
     let sk = SecretKey::from_random(KeyType::ED25519);
     let auto = set_automation(&env, &u, &sk).await?;
+    ok(u.owner
+        .call(&u.account, "owner_set_relayer_allowance")
+        .args_json(json!({"weekly_yocto": (10 * NEAR).to_string()}))
+        .deposit(NearToken::from_yoctonear(1))
+        .transact()
+        .await?)?;
     ok(env.exec(&u.device, &u.account, env.buy_ops(NEAR, 1, true), "b", 2 * NEAR).await?)?;
     let held = env.ft_balance(env.meme.id(), &u.account).await?;
     let exp = env.now_ns().await? + 3_600_000_000_000;

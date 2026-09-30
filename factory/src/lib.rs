@@ -40,6 +40,7 @@ pub struct Caps {
 pub struct AutomationInit {
     pub public_key: PublicKey,
     pub allowance: U128,
+    /// 1.1.1 (account v1.4.8): None = no weekly relayer limit (the default); Some = opt-in
     pub weekly_yocto: Option<U128>,
 }
 
@@ -131,6 +132,7 @@ impl Factory {
     #[payable]
     /// v1.4.7: `caps` optional (default: no cap, UNLIMITED); optional `automation` = the owner's
     /// automation key, installed by the account's `init` in the same batch (one signature).
+    /// 1.1.1: `automation.weekly_yocto` optional, None = no weekly relayer limit (v1.4.8 code).
     pub fn create_account(
         &mut self,
         device_public_key: Option<PublicKey>,

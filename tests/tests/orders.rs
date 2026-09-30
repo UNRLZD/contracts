@@ -313,7 +313,7 @@ async fn upgrade_from_v1_2_keeps_state() -> anyhow::Result<()> {
         .transact()
         .await?)?;
     assert_eq!(env.global_hash(&u.account).await?, Some(v13));
-    assert_eq!(env.config(&u.account).await?["version"], "1.4.7");
+    assert_eq!(env.config(&u.account).await?["version"], "1.4.8");
     assert_eq!(env.day_spent(&u).await?, spent);
     fails_with(
         &env.exec(&u.device, &u.account, env.buy_ops(NEAR / 10, 1, false), "pre", NEAR).await?,

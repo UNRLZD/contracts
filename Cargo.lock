@@ -1029,7 +1029,7 @@ dependencies = [
 
 [[package]]
 name = "factory"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "near-sdk",
 ]
@@ -4141,7 +4141,7 @@ dependencies = [
 
 [[package]]
 name = "trading-account"
-version = "1.4.7"
+version = "1.4.8"
 dependencies = [
  "ed25519-dalek",
  "near-sdk",

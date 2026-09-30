@@ -14,9 +14,16 @@ pub const FEE_BPS: u128 = 100;
 pub const RESERVE: u128 = NEAR / 20;
 pub const STORAGE: u128 = 1_250_000_000_000_000_000_000; // 0.00125 NEAR
 
+/// A wasm from `contracts/out/` (built by `build.sh`), or, for the frozen older releases the
+/// upgrade/migrate tests need (v1.2 … v1.4.4), from `tests/fixtures/` (v1.4.8, UNR-A-07: committed
+/// with `SHA256SUMS`, so the suite runs from a clean public checkout; `out/` wins if present).
 pub fn out(name: &str) -> Vec<u8> {
-    let p = format!("{}/../out/{name}.wasm", env!("CARGO_MANIFEST_DIR"));
-    std::fs::read(&p).unwrap_or_else(|_| panic!("{p} missing: run contracts/build.sh first"))
+    let dir = env!("CARGO_MANIFEST_DIR");
+    let p = format!("{dir}/../out/{name}.wasm");
+    let f = format!("{dir}/fixtures/{name}.wasm");
+    std::fs::read(&p).or_else(|_| std::fs::read(&f)).unwrap_or_else(|_| {
+        panic!("{p} missing: run contracts/build.sh first (legacy releases: tests/fixtures/{name}.wasm)")
+    })
 }
 
 pub fn code_hash(code: &[u8]) -> String {

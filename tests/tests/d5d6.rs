@@ -2,7 +2,8 @@
 //! D5: daily windows are UTC days (reset 00:00 UTC); a live pre-v1.4.1 rolling window's spend
 //!     is carried into the current UTC day on upgrade.
 //! D6: the automation key (24/7 relayer) is SELL-only (token_out == wrap) and bounded by a
-//!     weekly allowance (Σ order.min_out per ISO week, owner-set, default 10 NEAR).
+//!     weekly allowance (Σ order.min_out per ISO week, owner-set, default 10 NEAR; v1.4.8: no
+//!     default, owner opt-in).
 //! RED on v1.4.0 (NT_ACCOUNT_WASM / NT_FACTORY_WASM = out/*_v1_4_0.wasm), GREEN on v1.4.1.
 use integration_tests::*;
 use near_workspaces::types::{Gas, KeyType, NearToken, SecretKey};
