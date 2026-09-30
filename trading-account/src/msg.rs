@@ -20,6 +20,21 @@ pub enum DexKind {
     RheaClassic,
     RheaDcl,
     Plach,
+    /// v1.5: Shards launchpad tokens. The entry's `id` is the Shards FACTORY
+    /// (`factory.shardsmarket.near`); the venue is any token `<label>.<id>` (one label, no dot),
+    /// which trades against itself (curve, then in-token AMM). The factory id itself is never a
+    /// venue. See `shards_token_of`.
+    ShardsToken,
+}
+
+/// v1.5: `token` is `<label>.<factory>` with exactly one non-empty label (a Shards token account
+/// can only be created by the Shards factory account; a deeper name could be created by a token).
+pub fn shards_token_of(factory: &AccountId, token: &AccountId) -> bool {
+    token
+        .as_str()
+        .strip_suffix(factory.as_str())
+        .and_then(|l| l.strip_suffix('.'))
+        .is_some_and(|l| !l.is_empty() && !l.contains('.'))
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -55,6 +70,8 @@ pub fn parse(kind: DexKind, msg: &str, ctx: &Ctx) -> Result<Swap, &'static str> 
         DexKind::Plach => {
             plach(msg, ctx.self_id, ctx.wrap, &["nep141:", ctx.token_in.as_str()].concat(), ctx.referrer)?
         }
+        // v1.5: Shards trades are typed ops whose msg the contract builds; no raw msg is accepted
+        DexKind::ShardsToken => return Err(E_BAD_MSG),
     };
     nonzero(swap)
 }

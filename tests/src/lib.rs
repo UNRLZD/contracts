@@ -13,6 +13,10 @@ pub const TGAS: u64 = 1_000_000_000_000;
 pub const FEE_BPS: u128 = 100;
 pub const RESERVE: u128 = NEAR / 20;
 pub const STORAGE: u128 = 1_250_000_000_000_000_000_000; // 0.00125 NEAR
+/// v1.5: the Shards launchpad factory (mainnet id; tokens are `<label>.factory.shardsmarket.near`).
+pub const SHARDS_FACTORY: &str = "factory.shardsmarket.near";
+/// Shards token `storage_balance_bounds` (min = max = 0.005 NEAR).
+pub const SHARDS_STORAGE: u128 = 5_000_000_000_000_000_000_000;
 
 /// A wasm from `contracts/out/` (built by `build.sh`), or, for the frozen older releases the
 /// upgrade/migrate tests need (v1.2 … v1.4.4), from `tests/fixtures/` (v1.4.8, UNR-A-07: committed
@@ -97,6 +101,20 @@ impl Env {
 
     /// Same environment with explicit account / factory wasm (default: this build's out/).
     pub async fn new_with(account_wasm: Option<Vec<u8>>, factory_wasm: Option<Vec<u8>>) -> Result<Self> {
+        Self::new_with_dexes(account_wasm, factory_wasm, vec![]).await
+    }
+
+    /// v1.5: this build + the Shards factory allowlisted as a `ShardsToken` entry (factory 1.2.0).
+    pub async fn new_shards() -> Result<Self> {
+        Self::new_with_dexes(None, None, vec![json!({"id": SHARDS_FACTORY, "kind": "ShardsToken"})]).await
+    }
+
+    /// `extra_dexes` are appended to the factory's allowlist (v1.5: ShardsToken entries).
+    pub async fn new_with_dexes(
+        account_wasm: Option<Vec<u8>>,
+        factory_wasm: Option<Vec<u8>>,
+        extra_dexes: Vec<Value>,
+    ) -> Result<Self> {
         let worker = near_workspaces::sandbox().await?;
         let root = worker.root_account()?;
         let wrap = install_mainnet(&worker, "wrap.near").await?;
@@ -194,6 +212,15 @@ impl Env {
         let dcl = dcl_c.as_account().clone();
         let plach = sub(&root, "plach", NEAR).await?;
         let factory_code = factory_wasm.unwrap_or_else(|| out("factory"));
+        let dexes: Vec<Value> = [
+            vec![
+                json!({"id": rhea.id(), "kind": "RheaClassic"}),
+                json!({"id": dcl.id(), "kind": "RheaDcl"}),
+                json!({"id": plach.id(), "kind": "Plach"}),
+            ],
+            extra_dexes,
+        ]
+        .concat();
         let factory = sub(&root, "tt", 50 * NEAR).await?.deploy(&factory_code).await?.into_result()?;
         ok(factory
             .call("new")
@@ -201,11 +228,7 @@ impl Env {
                 "admin": admin.id(),
                 "code_hash": code_hash,
                 "fee_config": {"fee_bps": FEE_BPS, "fee_recipient": fees.id()},
-                "dex_allowlist": [
-                    {"id": rhea.id(), "kind": "RheaClassic"},
-                    {"id": dcl.id(), "kind": "RheaDcl"},
-                    {"id": plach.id(), "kind": "Plach"},
-                ],
+                "dex_allowlist": dexes,
                 "wrap": wrap.id(),
             }))
             .transact()
@@ -530,4 +553,132 @@ pub fn fee(x: u128) -> u128 {
 
 pub fn pk_str(pk: &PublicKey) -> String {
     serde_json::to_value(pk).unwrap().as_str().unwrap().to_string()
+}
+
+// ---------------- v1.5 Shards (real token wasm) ----------------
+
+/// Shards token templates: (cache name, mainnet token that runs it, has `activate`, v2.5).
+pub const SHARDS_TEMPLATES: [(&str, &str, bool, bool); 4] = [
+    ("v0_1_0", "l000001.factory.shardsmarket.near", false, false), // BqWmwKZ5…
+    ("v0_2_0", "l000101.factory.shardsmarket.near", true, false),  // 2nD3b7Y9…
+    ("v0_2_0_6uqY", "l000230.factory.shardsmarket.near", true, true), // 6uqYcTCa… (v2.5)
+    ("v0_2_0_EzdS", "l000233.factory.shardsmarket.near", true, true), // EzdS4z28… (v2.5, current)
+];
+
+/// Real Shards token code (`tests/.cache/shards_token_<t>.wasm`, fetched from mainnet if missing).
+pub async fn shards_wasm(t: &str) -> Result<Vec<u8>> {
+    let path = format!("{}/.cache/shards_token_{t}.wasm", env!("CARGO_MANIFEST_DIR"));
+    if let Ok(b) = std::fs::read(&path) {
+        return Ok(b);
+    }
+    let src = SHARDS_TEMPLATES.iter().find(|x| x.0 == t).ok_or_else(|| anyhow!("unknown template {t}"))?.1;
+    let code = mainnet_code(src).await?;
+    std::fs::write(&path, &code)?;
+    Ok(code)
+}
+
+/// `factory.shardsmarket.near` (no code, full-access key): the only account that may `new` a
+/// Shards token, as on mainnet.
+pub async fn shards_factory(worker: &Worker<Sandbox>) -> Result<Account> {
+    let aid: AccountId = SHARDS_FACTORY.parse()?;
+    let sk = SecretKey::from_random(KeyType::ED25519);
+    worker
+        .patch(&aid)
+        .account(near_workspaces::types::AccountDetailsPatch::default().balance(NearToken::from_near(10_000)))
+        .access_key(sk.public_key(), near_workspaces::AccessKey::full_access())
+        .transact()
+        .await?;
+    // v2.5 terms name a burner; create it so payouts to it can land.
+    let bid: AccountId = "burn.shardsmarket.near".parse()?;
+    worker
+        .patch(&bid)
+        .account(near_workspaces::types::AccountDetailsPatch::default().balance(NearToken::from_near(1)))
+        .transact()
+        .await?;
+    Ok(Account::from_secret_key(aid, sk, worker))
+}
+
+/// A NEAR-paired Shards token `id` (any id: the suffix rule is the trading account's business)
+/// running template `t`, initialised by `factory` as mainnet's `create_launch` does
+/// (`new{config, factory_id, request_id, terms?, venue?, upgrade_deadline_ns?}`, wrap registration,
+/// `activate`). `taxes` = (buy_tax_bps, sell_tax_bps).
+pub async fn shards_token(
+    env: &Env,
+    factory: &Account,
+    id: &str,
+    t: &str,
+    taxes: (u16, u16),
+) -> Result<Contract> {
+    shards_token_on(&env.worker, env.wrap.id(), env.root.id(), factory, id, t, taxes).await
+}
+
+/// `shards_token` without an `Env` (wrap = `wrap`, creator/fee recipient = `creator`).
+pub async fn shards_token_on(
+    worker: &Worker<Sandbox>,
+    wrap: &AccountId,
+    creator: &AccountId,
+    factory: &Account,
+    id: &str,
+    t: &str,
+    taxes: (u16, u16),
+) -> Result<Contract> {
+    let (_, _, activate, v25) =
+        *SHARDS_TEMPLATES.iter().find(|x| x.0 == t).ok_or_else(|| anyhow!("unknown template {t}"))?;
+    let token = install_code(worker, id, &shards_wasm(t).await?).await?;
+    let config = json!({"schema_version": 2, "market_model": "VIRTUAL_CURVE_TO_LOCAL_AMM",
+        "quote_asset_id": wrap, "token_decimals": 18,
+        "initial_supply": "1000000000000000000000000000", "sale_inventory": "750000000000000000000000000",
+        "amm_inventory": "250000000000000000000000000", "virtual_token_reserve": "1125000000000000000000000000",
+        "virtual_quote_reserve": "1000000000000000000000000000", "buy_tax_bps": taxes.0, "sell_tax_bps": taxes.1,
+        "platform_share_of_tax_bps": 2000,
+        "allocation": {"creator_bps": 10000, "buyback_burn_bps": 0, "dividends_bps": 0, "liquidity_bps": 0},
+        "curve_lp_fee_bps": 0, "amm_lp_fee_bps": 100, "lp_fee_accounting": "SEGREGATED",
+        "payout_asset_policy": "SAME_AS_QUOTE", "opening_surcharge": {"enabled": false},
+        "cto_policy": "PLATFORM_ASSISTED_FUTURE_FEES",
+        "core_upgrade_policy": if v25 { "OWNER_UPGRADEABLE_UNTIL_DEADLINE" } else { "IMMUTABLE_AFTER_ACTIVATION" },
+        "creator_id": creator, "fee_recipient_id": creator, "public_lp_enabled": false,
+        "metadata": {"name": "Sandbox", "symbol": "SBX", "image_ref": "ipfs://bafybeic54ldquk22pdjq6lq6mj7ipegalti3gv7ymlhhren3rbtk5rots4", "image_hash":
+            "51c74f69a6f0455f4091f2c62042bd00bee139915101431a1fd4adf0a7be4138", "description": null,
+            "website": null, "twitter": null, "telegram": null}});
+    let mut args = json!({"config": config, "factory_id": factory.id(), "request_id": format!("req-{id}")});
+    if t != "v0_1_0" {
+        args["terms"] = json!({"quote_asset_id": wrap, "quote_decimals": 24, "quote_kind": "wrapped_near",
+            "quote_unit": NEAR.to_string(), "min_buy": "1", "burner_id": "burn.shardsmarket.near"});
+    }
+    if v25 {
+        args["venue"] = json!({"intents_id": "intents.near", "refused_venues": [], "pool": null});
+        let deadline = worker.view_block().await?.timestamp() + 6 * 86_400 * 1_000_000_000;
+        args["upgrade_deadline_ns"] = json!(deadline.to_string());
+    }
+    ok(factory.call(token.id(), "new").args_json(args).gas(Gas::from_tgas(100)).transact().await?)?;
+    ok(factory
+        .call(wrap, "storage_deposit")
+        .args_json(json!({"account_id": token.id(), "registration_only": true}))
+        .deposit(NearToken::from_yoctonear(STORAGE))
+        .transact()
+        .await?)?;
+    if activate {
+        ok(factory
+            .call(token.id(), "activate")
+            .args_json(json!({}))
+            .gas(Gas::from_tgas(30))
+            .transact()
+            .await?)?;
+    }
+    Ok(token)
+}
+
+/// The msg the trading account builds for a Shards buy (`BuyMessage`, 6 fields).
+pub fn shards_buy_msg(order_id: &str, min_out: u128, deadline_ns: u64) -> String {
+    json!({"v": 1, "action": "buy", "order_id": order_id, "min_amount_out": min_out.to_string(),
+        "max_total_fee_bps": 1100, "deadline_ns": deadline_ns.to_string()})
+    .to_string()
+}
+
+/// Gas burnt per receipt of `r` as `(executor, TGas)` (gas measurements).
+pub fn gas_by_receipt(r: &ExecutionFinalResult) -> Vec<(String, f64)> {
+    r.receipt_outcomes()
+        .iter()
+        .map(|o| (o.executor_id.to_string(), o.gas_burnt.as_gas() as f64 / 1e12))
+        .collect()
 }

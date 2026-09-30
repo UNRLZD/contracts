@@ -50,6 +50,8 @@ pub enum DexKind {
     RheaClassic,
     RheaDcl,
     Plach,
+    /// 1.2.0 (account v1.5.0): Shards tokens; `id` = the Shards factory (tokens `<label>.<id>`).
+    ShardsToken,
 }
 
 #[near(serializers = [borsh, json])]

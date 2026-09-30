@@ -675,6 +675,7 @@ fn settle_bal(
         VMContextBuilder::new()
             .current_account_id(me())
             .predecessor_account_id(me())
+            .signer_account_id(me())
             .storage_usage(STORAGE_BYTES)
             .account_balance(NearToken::from_yoctonear(balance))
             .block_timestamp(T0 + 5)
@@ -690,6 +691,7 @@ fn settle_bal(
         U128(counted),
         U128(fee),
         U64(day_start),
+        None,
         None,
         None,
         None,
@@ -1704,6 +1706,7 @@ fn big_ctx(pred: &str, now: u64) {
     testing_env!(VMContextBuilder::new()
         .current_account_id(me())
         .predecessor_account_id(a(pred))
+        .signer_account_id(a(pred))
         .account_balance(NearToken::from_yoctonear(100 * NEAR))
         .storage_usage(100_000)
         .block_timestamp(now)
@@ -1733,7 +1736,11 @@ fn with_automation_weekly(weekly: u128) -> TradingAccount {
 fn automation_cb(c: &mut TradingAccount, pk: PublicKey, success: bool) {
     let rs = get_created_receipts();
     testing_env!(
-        VMContextBuilder::new().current_account_id(me()).predecessor_account_id(me()).build(),
+        VMContextBuilder::new()
+            .current_account_id(me())
+            .predecessor_account_id(me())
+            .signer_account_id(me())
+            .build(),
         near_sdk::test_vm_config(),
         near_sdk::RuntimeFeesConfig::test(),
         Default::default(),
@@ -1888,6 +1895,7 @@ fn place_order_rules_and_bounds() {
     testing_env!(VMContextBuilder::new()
         .current_account_id(me())
         .predecessor_account_id(me())
+        .signer_account_id(me())
         .account_balance(NearToken::from_yoctonear(100 * NEAR))
         .storage_usage(100_000)
         .block_timestamp(T0 + 61 * NS_PER_SEC)
@@ -2002,6 +2010,7 @@ fn settle_order(c: &mut TradingAccount, result: PromiseResult, id: u64) {
         VMContextBuilder::new()
             .current_account_id(me())
             .predecessor_account_id(me())
+            .signer_account_id(me())
             .storage_usage(STORAGE_BYTES)
             .account_balance(NearToken::from_yoctonear(10 * NEAR))
             .block_timestamp(T0 + 3)
@@ -2018,6 +2027,7 @@ fn settle_order(c: &mut TradingAccount, result: PromiseResult, id: u64) {
         U128(NEAR / 100),
         U64(D0),
         Some(U64(id)),
+        None,
         None,
         None,
         None,
@@ -2200,6 +2210,7 @@ fn d6_failed_relayer_fire_returns_allowance() {
         VMContextBuilder::new()
             .current_account_id(me())
             .predecessor_account_id(me())
+            .signer_account_id(me())
             .storage_usage(STORAGE_BYTES)
             .account_balance(NearToken::from_yoctonear(10 * NEAR))
             .block_timestamp(T0 + 5)
@@ -2218,6 +2229,7 @@ fn d6_failed_relayer_fire_returns_allowance() {
         Some(U64(s1)),
         Some(U64(wk)),
         Some(U128(4 * NEAR - floor)),
+        None,
         None,
     );
     assert!(!c.get_order(U64(s1)).unwrap().pending, "reopened");
@@ -2603,6 +2615,7 @@ fn a1_u05_settle_completes_for_any_result_size() {
             VMContextBuilder::new()
                 .current_account_id(me())
                 .predecessor_account_id(me())
+                .signer_account_id(me())
                 .storage_usage(STORAGE_BYTES)
                 .account_balance(NearToken::from_yoctonear(10 * NEAR))
                 .block_timestamp(T0 + 3)
@@ -2620,6 +2633,7 @@ fn a1_u05_settle_completes_for_any_result_size() {
             U128(NEAR / 200),
             U64(D0),
             Some(U64(id)),
+            None,
             None,
             None,
             None,
@@ -2673,6 +2687,7 @@ mod v146;
 mod v147;
 mod v147_init;
 mod v148;
+mod v149;
 
 // ======================= v1.4.2: re-audit C1 =======================
 
@@ -2687,7 +2702,11 @@ fn buy_fire_by(c: &mut TradingAccount, pk: PublicKey, id: u64) -> String {
 
 fn key_cb(result: PromiseResult) {
     testing_env!(
-        VMContextBuilder::new().current_account_id(me()).predecessor_account_id(me()).build(),
+        VMContextBuilder::new()
+            .current_account_id(me())
+            .predecessor_account_id(me())
+            .signer_account_id(me())
+            .build(),
         near_sdk::test_vm_config(),
         near_sdk::RuntimeFeesConfig::test(),
         Default::default(),
@@ -2817,4 +2836,522 @@ fn c1_l3_relayer_fire_floor() {
     let id = place_sell(&mut c, 10u128.pow(24), 3 * NEAR);
     relayer_fire(&mut c, id, 10u128.pow(24), 3 * NEAR, T0 + 2);
     assert_eq!(c.get_relayer_week().spent_yocto.0, 3 * NEAR);
+}
+
+// ======================= v1.5: Shards (ShardsBuy / ShardsSell / ShardsWithdrawQuote) =======================
+
+const SHARDS_F: &str = "factory.shardsmarket.near";
+const SHARDS_T: &str = "l000143.factory.shardsmarket.near";
+/// Shards token registration (storage_balance_bounds min = max)
+const SHARDS_REG: u128 = 5_000_000_000_000_000_000_000;
+
+fn new_shards_account() -> TradingAccount {
+    ctx("tt.near", 0, NEAR, T0);
+    near_sdk::mock::with_mocked_blockchain(|b| {
+        b.take_storage();
+    });
+    ctx("tt.near", 0, NEAR, T0);
+    TradingAccount::init(
+        a("owner.near"),
+        FeeConfig { fee_bps: 100, fee_recipient: a("fees.near") },
+        caps(2 * NEAR, 5 * NEAR),
+        vec![
+            Dex { id: a("v2.ref-finance.near"), kind: DexKind::RheaClassic },
+            Dex { id: a("dclv2.ref-labs.near"), kind: DexKind::RheaDcl },
+            Dex { id: a("dex.intear.near"), kind: DexKind::Plach },
+            Dex { id: a(SHARDS_F), kind: DexKind::ShardsToken },
+        ],
+        a("wrap.near"),
+        None,
+    )
+}
+
+fn shards_buy_ops(token: &str, amount: u128, min_out: u128) -> Vec<Op> {
+    vec![
+        Op::NearDeposit { amount: U128(amount) },
+        Op::StorageDeposit { token: a(token), amount: U128(SHARDS_REG) },
+        Op::ShardsBuy { token: a(token), amount: U128(amount), min_out: U128(min_out), gas: U64(100 * TGAS) },
+    ]
+}
+
+fn shards_sell_op(token: &str, amount: u128, min_out: u128) -> Op {
+    Op::ShardsSell { token: a(token), amount: U128(amount), min_out: U128(min_out), gas: U64(50 * TGAS) }
+}
+
+/// (receiver, method, args json, deposit, gas) of every function call created so far
+fn calls() -> Vec<(AccountId, String, near_sdk::serde_json::Value, u128, Gas, Vec<u64>)> {
+    get_created_receipts()
+        .into_iter()
+        .flat_map(|r| {
+            let (rcv, deps) = (r.receiver_id.clone(), r.receipt_indices.clone());
+            r.actions
+                .into_iter()
+                .filter_map(move |x| match x {
+                    MockAction::FunctionCallWeight {
+                        method_name,
+                        args,
+                        attached_deposit,
+                        prepaid_gas,
+                        ..
+                    } => Some((
+                        rcv.clone(),
+                        String::from_utf8(method_name).unwrap(),
+                        near_sdk::serde_json::from_slice(&args).unwrap_or(near_sdk::serde_json::Value::Null),
+                        attached_deposit.as_yoctonear(),
+                        prepaid_gas,
+                        deps.clone(),
+                    )),
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect()
+}
+
+#[test]
+fn shards_token_of_rule() {
+    let f = a(SHARDS_F);
+    for ok in [SHARDS_T, "l000000.factory.shardsmarket.near", "x.factory.shardsmarket.near"] {
+        assert!(msg::shards_token_of(&f, &a(ok)), "{ok}");
+    }
+    for bad in [
+        SHARDS_F,                                      // the factory itself
+        "shardsmarket.near",                           // its parent
+        "x.y.factory.shardsmarket.near",               // could be created by a token
+        "xfactory.shardsmarket.near",                  // no dot before the suffix
+        "l000143.factory.shardsmarket.near.evil.near", // suffix not at the end
+        "evil.near",
+        "l000143.factory.shardsmarket.nea",
+    ] {
+        assert!(!msg::shards_token_of(&f, &a(bad)), "{bad}");
+    }
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(2000))]
+    /// The suffix rule equals "exactly one label, then '.', then the factory id", for any ids.
+    #[test]
+    fn shards_token_of_matches_reference(label in "[a-z0-9_.-]{0,12}", tail in "[a-z0-9.]{0,6}", f in "[a-z]{1,8}\\.near") {
+        let f: AccountId = match f.parse() { Ok(x) => x, Err(_) => return Ok(()) };
+        let s = format!("{label}.{f}{tail}");
+        if let Ok(t) = s.parse::<AccountId>() {
+            let reference = tail.is_empty() && !label.is_empty() && !label.contains('.');
+            prop_assert_eq!(msg::shards_token_of(&f, &t), reference);
+        }
+    }
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(150))]
+
+    /// The buy msg the contract builds is valid JSON with exactly the 6 known fields, whatever
+    /// client_order_id holds (quotes, backslashes, unicode): nothing a caller sends can add a field.
+    #[test]
+    fn shards_buy_msg_has_exactly_six_fields(id in "\\PC{1,16}", min_out in 1u128..u128::MAX) {
+        let mut c = new_shards_account();
+        ctx(me().as_str(), 0, 10 * NEAR, T0 + 1);
+        let ops = vec![Op::ShardsBuy { token: a(SHARDS_T), amount: U128(NEAR / 10), min_out: U128(min_out), gas: U64(100 * TGAS) }];
+        c.execute(ops, id.clone(), U64(T0 + 60 * NS_PER_SEC), U128(NEAR));
+        let cs = calls();
+        let (_, _, args, _, _, _) = cs.iter().find(|c| c.1 == "ft_transfer_call").unwrap();
+        let m: near_sdk::serde_json::Value = near_sdk::serde_json::from_str(args["msg"].as_str().unwrap()).unwrap();
+        let o = m.as_object().unwrap();
+        prop_assert_eq!(o.len(), 6);
+        prop_assert_eq!(o["order_id"].as_str().unwrap(), id.as_str());
+        prop_assert_eq!(o["min_amount_out"].as_str().unwrap(), min_out.to_string());
+        prop_assert!(!o.contains_key("recipient_id"));
+    }
+}
+
+/// Buy: [NearDeposit, StorageDeposit(token), ShardsBuy] -> wrap batch (near_deposit +
+/// ft_transfer_call to the token with the contract-built msg), token registration, and the
+/// on_swap_settled callback (proof "wrap") after the wrap batch only.
+#[test]
+fn shards_buy_shape() {
+    let mut c = new_shards_account();
+    ctx(me().as_str(), 0, 10 * NEAR, T0 + 1);
+    exec(&mut c, shards_buy_ops(SHARDS_T, NEAR, 7), "o1", 2 * NEAR);
+    assert_eq!(c.get_day().spent_yocto.0, NEAR + NEAR / 100 + SHARDS_REG);
+    let cs = calls();
+    let ftc = cs.iter().find(|c| c.1 == "ft_transfer_call").unwrap();
+    assert_eq!(ftc.0, a("wrap.near"));
+    assert_eq!(ftc.2["receiver_id"], SHARDS_T);
+    assert_eq!(ftc.2["amount"], NEAR.to_string());
+    assert_eq!(ftc.3, 1);
+    assert_eq!(ftc.4, Gas::from_tgas(100));
+    assert_eq!(
+        ftc.2["msg"],
+        format!(
+            r#"{{"v":1,"action":"buy","order_id":"o1","min_amount_out":"7","max_total_fee_bps":1100,"deadline_ns":"{}"}}"#,
+            T0 + 1 + MAX_EXPIRY_AHEAD_NS
+        )
+    );
+    let reg = cs.iter().find(|c| c.1 == "storage_deposit" && c.0 == a(SHARDS_T)).unwrap();
+    assert_eq!(reg.3, SHARDS_REG);
+    assert_eq!(reg.2["account_id"], me().as_str());
+    let cb = cs.iter().find(|c| c.1 == "on_swap_settled").unwrap();
+    assert_eq!(cb.0, me());
+    assert_eq!(cb.2["proof"], "wrap");
+    assert_eq!(cb.2["amount"], NEAR.to_string());
+    assert_eq!(cb.2["counted"], NEAR.to_string());
+    assert_eq!(cb.2["fee"], (NEAR / 100).to_string());
+    // nothing is sent to the factory, and no call names a recipient
+    assert!(cs.iter().all(|c| c.0 != a(SHARDS_F)));
+    assert!(cs.iter().all(|c| c.2.get("recipient_id").is_none()));
+}
+
+/// Sell: token.sell_exact_in (1 yocto) then on_shards_sold (static GAS_SHARDS_SOLD_CB) carrying the
+/// settle args; the reserved fee is bps(min_out) and a sell counts only that fee.
+#[test]
+fn shards_sell_shape() {
+    let mut c = new_shards_account();
+    ctx(me().as_str(), 0, 10 * NEAR, T0 + 1);
+    exec(&mut c, vec![shards_sell_op(SHARDS_T, 10u128.pow(24), NEAR)], "s1", 2 * NEAR);
+    assert_eq!(c.get_day().spent_yocto.0, NEAR / 100);
+    let cs = calls();
+    assert_eq!(cs.len(), 2, "{cs:?}");
+    let sell = &cs[0];
+    assert_eq!((sell.0.as_str(), sell.1.as_str(), sell.3), (SHARDS_T, "sell_exact_in", 1));
+    assert_eq!(
+        sell.2,
+        near_sdk::serde_json::json!({"amount": 10u128.pow(24).to_string(), "min_amount_out": NEAR.to_string(),
+            "max_total_fee_bps": 1100, "deadline_ns": (T0 + 1 + MAX_EXPIRY_AHEAD_NS).to_string()})
+    );
+    let cb = &cs[1];
+    assert_eq!((cb.0.clone(), cb.1.as_str()), (me(), "on_shards_sold"));
+    assert_eq!(cb.4, Gas::from_tgas(GAS_SHARDS_SOLD_CB));
+    assert_eq!(cb.5, vec![0], "after the sell only");
+    assert_eq!(cb.2["token"], SHARDS_T);
+    let s: near_sdk::serde_json::Value =
+        near_sdk::serde_json::from_str(cb.2["settle"].as_str().unwrap()).unwrap();
+    assert_eq!(s["proof"], "shards_sell");
+    assert_eq!(s["fee"], (NEAR / 100).to_string());
+    assert_eq!(s["counted"], "0");
+}
+
+#[test]
+fn shards_rejections() {
+    type Case = (&'static str, Vec<Op>, bool);
+    let buy =
+        |t: &str| Op::ShardsBuy { token: a(t), amount: U128(NEAR), min_out: U128(1), gas: U64(100 * TGAS) };
+    let cases: Vec<Case> = vec![
+        ("E_BAD_DEX", vec![buy("evil.near")], true),
+        ("E_BAD_DEX", vec![buy(SHARDS_F)], true),
+        ("E_BAD_DEX", vec![buy("x.l000143.factory.shardsmarket.near")], true),
+        ("E_BAD_DEX", vec![shards_sell_op("l1.evil.near", 1, 1)], true),
+        ("E_BAD_DEX", vec![Op::ShardsWithdrawQuote { token: a(SHARDS_F) }], true),
+        // an account whose allowlist has no ShardsToken entry
+        ("E_BAD_DEX", vec![buy(SHARDS_T)], false),
+        // no raw msg path to a Shards token or to the factory
+        (
+            "E_BAD_DEX",
+            vec![Op::FtTransferCall {
+                token: a("wrap.near"),
+                receiver_id: a(SHARDS_T),
+                amount: U128(NEAR),
+                msg: r#"{"v":1,"action":"buy","order_id":"x","min_amount_out":"1","max_total_fee_bps":1100,"deadline_ns":"1","recipient_id":"evil.near"}"#.into(),
+                gas: U64(100 * TGAS),
+            }],
+            true,
+        ),
+        (
+            "E_BAD_DEX",
+            vec![Op::FtTransferCall {
+                token: a("wrap.near"),
+                receiver_id: a(SHARDS_F),
+                amount: U128(NEAR),
+                msg: "{}".into(),
+                gas: U64(100 * TGAS),
+            }],
+            true,
+        ),
+        // the factory is not a storage target; a token not traded in this execute neither
+        ("E_STORAGE_TARGET", vec![Op::StorageDeposit { token: a(SHARDS_F), amount: U128(SHARDS_REG) }], true),
+        (
+            "E_STORAGE_TARGET",
+            vec![
+                Op::StorageDeposit { token: a("l9.factory.shardsmarket.near"), amount: U128(SHARDS_REG) },
+                buy(SHARDS_T),
+            ],
+            true,
+        ),
+        ("E_BAD_OP", vec![Op::ShardsBuy { token: a(SHARDS_T), amount: U128(0), min_out: U128(1), gas: U64(100 * TGAS) }], true),
+        ("E_BAD_OP", vec![Op::ShardsBuy { token: a(SHARDS_T), amount: U128(1), min_out: U128(0), gas: U64(100 * TGAS) }], true),
+        ("E_BAD_OP", vec![shards_sell_op(SHARDS_T, 1, 0)], true),
+        ("E_BAD_OP", vec![shards_sell_op(SHARDS_T, 0, 1)], true),
+        ("E_GAS", vec![Op::ShardsBuy { token: a(SHARDS_T), amount: U128(1), min_out: U128(1), gas: U64(151 * TGAS) }], true),
+        ("E_GAS", vec![Op::ShardsBuy { token: a(SHARDS_T), amount: U128(1), min_out: U128(1), gas: U64(19 * TGAS) }], true),
+        ("E_GAS", vec![Op::ShardsSell { token: a(SHARDS_T), amount: U128(1), min_out: U128(1), gas: U64(101 * TGAS) }], true),
+        // one swap, last
+        ("E_BAD_OP", vec![shards_sell_op(SHARDS_T, 1, 1), Op::NearWithdraw { amount: U128(1) }], true),
+        ("E_BAD_OP", vec![shards_sell_op(SHARDS_T, 1, 1), buy(SHARDS_T)], true),
+    ];
+    for (code, ops, shards) in cases {
+        let mut c = if shards { new_shards_account() } else { new_account() };
+        ctx(me().as_str(), 0, 10 * NEAR, T0 + 1);
+        let dbg = format!("{ops:?}");
+        assert_eq!(panics(std::panic::AssertUnwindSafe(|| exec(&mut c, ops, "r1", 2 * NEAR))), code, "{dbg}");
+    }
+}
+
+fn shards_cb_ctx(result: PromiseResult, balance: u128) {
+    shards_cb_ctx_gas(result, balance, GAS_SHARDS_SOLD_CB)
+}
+
+/// The mock's fee schedule differs from the chain's; real gas is measured in the sandbox.
+fn shards_cb_ctx_gas(result: PromiseResult, balance: u128, tgas: u64) {
+    testing_env!(
+        VMContextBuilder::new()
+            .current_account_id(me())
+            .predecessor_account_id(me())
+            .signer_account_id(me())
+            .storage_usage(STORAGE_BYTES)
+            .account_balance(NearToken::from_yoctonear(balance))
+            .block_timestamp(T0 + 5)
+            .prepaid_gas(Gas::from_tgas(tgas))
+            .build(),
+        near_sdk::test_vm_config(),
+        near_sdk::RuntimeFeesConfig::test(),
+        Default::default(),
+        vec![result],
+    );
+}
+
+fn sell_settle(fee: u128, order_id: Option<u64>) -> String {
+    let o = order_id.map_or(String::new(), |i| format!(r#","order_id":"{i}""#));
+    format!(
+        r#"{{"client_order_id":"s1","amount":"{}","counted":"0","fee":"{fee}","day_start":"{D0}","proof":"shards_sell"{o}}}"#,
+        10u128.pow(24)
+    )
+}
+
+/// sell_exact_in reverted -> settled as failed: no payout call, no fee, the reserved fee returns.
+#[test]
+fn shards_sold_failed_returns_spend() {
+    let mut c = new_shards_account();
+    ctx(me().as_str(), 0, 10 * NEAR, T0 + 1);
+    exec(&mut c, vec![shards_sell_op(SHARDS_T, 10u128.pow(24), NEAR)], "s1", 2 * NEAR);
+    assert_eq!(c.day.spent_yocto, NEAR / 100);
+    shards_cb_ctx(PromiseResult::Failed, 10 * NEAR);
+    c.on_shards_sold(a(SHARDS_T), sell_settle(NEAR / 100, None));
+    assert_eq!(c.day.spent_yocto, 0);
+    assert!(calls().is_empty());
+    assert_eq!(fee_paid(), 0);
+    assert!(get_logs().iter().any(|l| l.contains(r#""event":"settled""#) && l.contains(r#""used":"0""#)));
+}
+
+/// Credited -> withdraw_quote{amount: credit} on the token (1 yocto, never a recipient_id), then
+/// on_shards_settled with the credit and the liquid balance before the payout.
+#[test]
+fn shards_sold_withdraws_exact_credit_to_self() {
+    let mut c = new_shards_account();
+    shards_cb_ctx_gas(ok_json(3 * NEAR), 10 * NEAR, 300);
+    c.on_shards_sold(a(SHARDS_T), sell_settle(NEAR / 100, None));
+    let cs = calls();
+    assert_eq!(cs.len(), 2, "{cs:?}");
+    assert_eq!((cs[0].0.as_str(), cs[0].1.as_str(), cs[0].3), (SHARDS_T, "withdraw_quote", 1));
+    assert_eq!(cs[0].2, near_sdk::serde_json::json!({"amount": (3 * NEAR).to_string()}));
+    assert_eq!(cs[0].4, Gas::from_tgas(GAS_SHARDS_WITHDRAW));
+    assert_eq!((cs[1].0.clone(), cs[1].1.as_str()), (me(), "on_shards_settled"));
+    assert_eq!(cs[1].5, vec![0]);
+    assert_eq!(cs[1].2["credit"], (3 * NEAR).to_string());
+    assert_eq!(cs[1].2["liquid_before"], (10 * NEAR - LOCKED).to_string());
+    assert_eq!(cs[1].2["settle"]["proof"], "shards_sell");
+    assert_eq!(fee_paid(), 0, "no fee before the payout arrived");
+    // no readable positive credit: used, no payout, no fee
+    for r in [ok_json(0), PromiseResult::Successful(b"nope".to_vec()), PromiseResult::Successful(vec![])] {
+        let mut c = new_shards_account();
+        shards_cb_ctx(r, 10 * NEAR);
+        c.on_shards_sold(a(SHARDS_T), sell_settle(NEAR / 100, None));
+        assert!(calls().is_empty());
+        assert!(get_logs().iter().any(|l| l.contains(r#""fee":"0""#)));
+    }
+}
+
+/// Fee = fee_bps x min(credit, NEAR that arrived). A token can't raise it above what it paid; a
+/// failed payout pays none; an honest output above min_out pays its full bps (counted as spend).
+#[test]
+fn shards_settled_fee_on_actual_output() {
+    let before = 10 * NEAR - LOCKED;
+    // (credit, arrived, expected fee)
+    for (credit, arrived, fee) in [
+        (3 * NEAR, 3 * NEAR, 3 * NEAR / 100), // honest: above the reserved bps(min_out = 1 NEAR)
+        (3 * NEAR, 5 * NEAR, 3 * NEAR / 100), // unrelated inflow: capped by the credit
+        (1_000 * NEAR, 2 * NEAR, 2 * NEAR / 100), // lying credit: capped by what arrived
+        (3 * NEAR, 0, 0),                     // payout failed (credit stays in the token)
+    ] {
+        let mut c = new_shards_account();
+        ctx(me().as_str(), 0, 10 * NEAR, T0 + 1);
+        exec(&mut c, vec![shards_sell_op(SHARDS_T, 10u128.pow(24), NEAR)], "s1", 2 * NEAR);
+        let reserved = NEAR / 100;
+        shards_cb_ctx(PromiseResult::Successful(vec![]), 10 * NEAR + arrived);
+        let settle: SettleArgs = near_sdk::serde_json::from_str(&sell_settle(reserved, None)).unwrap();
+        c.on_shards_settled(settle, U128(credit), U128(before));
+        assert_eq!(fee_paid(), fee, "credit {credit} arrived {arrived}");
+        assert_eq!(c.day.spent_yocto, fee, "spend = the fee actually charged");
+    }
+}
+
+/// A Shards order: the token is its venue; the relayer fires the stored sell exactly; a reverted
+/// sell reopens it; a sell that went through consumes it (even if the payout failed).
+fn shards_with_automation() -> TradingAccount {
+    let mut c = new_shards_account();
+    ctx("owner.near", 1, 10 * NEAR, T0);
+    c.owner_set_automation_key(auto_pk(), U128(NEAR));
+    automation_cb(&mut c, auto_pk(), true);
+    c
+}
+
+fn place_shards_sell(c: &mut TradingAccount) -> u64 {
+    ctx(me().as_str(), 0, 10 * NEAR, T0 + 1);
+    c.place_order(
+        a(SHARDS_T),
+        a("wrap.near"),
+        U128(10),
+        U128(NEAR),
+        "{}".into(),
+        U64(T0 + 3_600 * NS_PER_SEC),
+        vec![a(SHARDS_T)],
+    )
+    .0
+}
+
+#[test]
+fn shards_orders() {
+    let mut c = shards_with_automation();
+    ctx(me().as_str(), 0, 10 * NEAR, T0 + 1);
+    assert_eq!(
+        panics(std::panic::AssertUnwindSafe(|| {
+            c.place_order(
+                a(SHARDS_T),
+                a("wrap.near"),
+                U128(10),
+                U128(NEAR),
+                "{}".into(),
+                U64(T0 + 3_600 * NS_PER_SEC),
+                vec![a(SHARDS_F)],
+            );
+        })),
+        "E_BAD_DEX"
+    );
+    // relayer: different amount / other token / lower min_out refused (fresh account per case: the
+    // mocked env does not revert state on a panic)
+    for (ops, code) in [
+        (vec![shards_sell_op(SHARDS_T, 11, NEAR)], "E_ORDER_MISMATCH"),
+        (vec![shards_sell_op("l9.factory.shardsmarket.near", 10, NEAR)], "E_ORDER_MISMATCH"),
+        (vec![shards_sell_op(SHARDS_T, 10, NEAR - 1)], "E_ORDER_MIN_OUT"),
+        (
+            vec![Op::ShardsWithdrawQuote { token: a(SHARDS_T) }, shards_sell_op(SHARDS_T, 10, NEAR)],
+            "E_ORDER_OPS",
+        ),
+    ] {
+        let mut c = shards_with_automation();
+        let id = place_shards_sell(&mut c);
+        ctx_pk(me().as_str(), Some(auto_pk()), 0, T0 + 2);
+        assert_eq!(panics(std::panic::AssertUnwindSafe(|| c.execute_order(U64(id), ops.clone()))), code);
+    }
+    let id = place_shards_sell(&mut c);
+    ctx_pk(me().as_str(), Some(auto_pk()), 0, T0 + 2);
+    c.execute_order(U64(id), vec![shards_sell_op(SHARDS_T, 10, 2 * NEAR)]);
+    assert!(c.get_order(U64(id)).unwrap().pending);
+    let cs = calls();
+    let settle =
+        cs.iter().find(|x| x.1 == "on_shards_sold").unwrap().2["settle"].as_str().unwrap().to_string();
+    let v: near_sdk::serde_json::Value = near_sdk::serde_json::from_str(&settle).unwrap();
+    // UNR-A-01: the reserved sell fee is from the STORED min_out, not the fire's higher one
+    assert_eq!(v["fee"], (NEAR / 100).to_string());
+    assert_eq!(v["order_id"], id.to_string());
+    // reverted -> reopened
+    shards_cb_ctx(PromiseResult::Failed, 10 * NEAR);
+    c.on_shards_sold(a(SHARDS_T), settle.clone());
+    assert!(!c.get_order(U64(id)).unwrap().pending);
+    assert!(get_logs().iter().any(|l| l.contains("order_reopened")));
+    // fired again, credited, payout failed -> consumed, no fee
+    ctx_pk(me().as_str(), Some(auto_pk()), 0, T0 + 3);
+    c.execute_order(U64(id), vec![shards_sell_op(SHARDS_T, 10, NEAR)]);
+    let s: SettleArgs = near_sdk::serde_json::from_str(&settle).unwrap();
+    shards_cb_ctx(PromiseResult::Failed, 10 * NEAR);
+    c.on_shards_settled(s, U128(NEAR), U128(10 * NEAR - LOCKED));
+    assert!(c.get_order(U64(id)).is_none());
+    assert_eq!(fee_paid(), 0);
+    // buy order on the token
+    ctx(me().as_str(), 0, 10 * NEAR, T0 + 4);
+    let b = c
+        .place_order(
+            a("wrap.near"),
+            a(SHARDS_T),
+            U128(NEAR),
+            U128(5),
+            "{}".into(),
+            U64(T0 + 3_600 * NS_PER_SEC),
+            vec![a(SHARDS_T)],
+        )
+        .0;
+    ctx_pk(me().as_str(), Some(auto_pk()), 0, T0 + 5);
+    c.execute_order(U64(b), shards_buy_ops(SHARDS_T, NEAR, 5));
+    let cs = calls();
+    let cb = cs.iter().find(|x| x.1 == "on_swap_settled").unwrap();
+    assert_eq!(cb.2["proof"], "wrap");
+    assert_eq!(cb.2["order_id"], b.to_string());
+    // a refused buy (wrap resolves 0 used) reopens it: the token refunds every refusal in full
+    settle_order_proof(&mut c, ok_json(0), b, "wrap");
+    assert!(!c.get_order(U64(b)).unwrap().pending);
+}
+
+fn settle_order_proof(c: &mut TradingAccount, result: PromiseResult, id: u64, proof: &str) {
+    shards_cb_ctx(result, 10 * NEAR);
+    c.on_swap_settled(
+        format!("order:{id}"),
+        U128(NEAR),
+        U128(NEAR),
+        U128(NEAR / 100),
+        U64(D0),
+        Some(U64(id)),
+        None,
+        None,
+        Some(proof.into()),
+        None,
+    );
+}
+
+/// Graduation clamp: the token used only part of the wNEAR (the rest is refunded by wrap): the fee
+/// is pro-rata on what was used and the unused spend returns.
+#[test]
+fn shards_buy_partial_fill_graduation_clamp() {
+    let mut c = new_shards_account();
+    ctx(me().as_str(), 0, 10 * NEAR, T0 + 1);
+    exec(&mut c, shards_buy_ops(SHARDS_T, NEAR, 7), "o1", 2 * NEAR);
+    settle(&mut c, ok_json(NEAR / 4), NEAR, NEAR, NEAR / 100, D0);
+    assert_eq!(fee_paid(), NEAR / 400);
+    assert_eq!(c.day.spent_yocto, NEAR / 4 + NEAR / 400 + SHARDS_REG);
+}
+
+/// Recovery: ShardsWithdrawQuote pays the account's own credit (no recipient, not spend).
+#[test]
+fn shards_withdraw_quote_recovery() {
+    let mut c = new_shards_account();
+    ctx(me().as_str(), 0, 10 * NEAR, T0 + 1);
+    exec(&mut c, vec![Op::ShardsWithdrawQuote { token: a(SHARDS_T) }], "w1", 0);
+    assert_eq!(c.day.spent_yocto, 0);
+    let cs = calls();
+    assert_eq!(cs.len(), 1);
+    assert_eq!((cs[0].0.as_str(), cs[0].1.as_str(), cs[0].3), (SHARDS_T, "withdraw_quote", 1));
+    assert_eq!(cs[0].2, near_sdk::serde_json::json!({}));
+}
+
+/// v1.5 review (Low): a FAILED withdraw_quote pays no fee even when unrelated NEAR arrived in the
+/// same window (owner deposit, another payout) and the token claims a credit. Red before the fix:
+/// fee = bps(min(credit, arrived)) = 0.03 NEAR.
+#[test]
+fn shards_settled_failed_payout_no_fee_despite_concurrent_inflow() {
+    let mut c = new_shards_account();
+    ctx(me().as_str(), 0, 10 * NEAR, T0 + 1);
+    exec(&mut c, vec![shards_sell_op(SHARDS_T, 10u128.pow(24), NEAR)], "s1", 2 * NEAR);
+    // 5 NEAR arrived from elsewhere while the payout failed
+    shards_cb_ctx(PromiseResult::Failed, 15 * NEAR);
+    let settle: SettleArgs = near_sdk::serde_json::from_str(&sell_settle(NEAR / 100, None)).unwrap();
+    c.on_shards_settled(settle, U128(3 * NEAR), U128(10 * NEAR - LOCKED));
+    assert_eq!(fee_paid(), 0);
+    assert_eq!(c.day.spent_yocto, 0, "the reserved fee returns");
+    assert!(get_logs().iter().any(|l| l.contains(r#""event":"settled""#) && l.contains(r#""fee":"0""#)));
 }

@@ -1,6 +1,6 @@
 [package]
 name = "trading-account"
-version = "1.4.8"
+version = "1.5.0"
 edition = "2021"
 # v1.4.3 (MSRV-001): the toolchain this is built and tested with (reproducible image: 1.97.1)
 rust-version = "1.96"

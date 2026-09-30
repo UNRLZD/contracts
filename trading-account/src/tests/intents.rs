@@ -644,6 +644,7 @@ fn settle_intents(c: &mut TradingAccount, r: PromiseResult, amount: u128, counte
         VMContextBuilder::new()
             .current_account_id(me())
             .predecessor_account_id(me())
+            .signer_account_id(me())
             .storage_usage(STORAGE_BYTES)
             .account_balance(NearToken::from_yoctonear(10 * NEAR))
             .block_timestamp(ACTIVE + 5)
@@ -1167,6 +1168,7 @@ fn b1_m1_usd_settle_returns_unused() {
         VMContextBuilder::new()
             .current_account_id(me())
             .predecessor_account_id(me())
+            .signer_account_id(me())
             .storage_usage(STORAGE_BYTES)
             .account_balance(NearToken::from_yoctonear(10 * NEAR))
             .block_timestamp(ACTIVE + 5)
@@ -1325,7 +1327,11 @@ fn b1_l1_existing_key_is_replaced() {
     c.owner_add_key(pk.clone(), KeyKind::FunctionCall);
     // AddKey failed (key exists) -> one batch DeleteKey + AddKey(DEVICE_METHODS)
     testing_env!(
-        VMContextBuilder::new().current_account_id(me()).predecessor_account_id(me()).build(),
+        VMContextBuilder::new()
+            .current_account_id(me())
+            .predecessor_account_id(me())
+            .signer_account_id(me())
+            .build(),
         near_sdk::test_vm_config(),
         near_sdk::RuntimeFeesConfig::test(),
         Default::default(),
@@ -1343,7 +1349,11 @@ fn b1_l1_existing_key_is_replaced() {
     assert_eq!(rs.len(), 2, "+ on_key_replaced");
     // success path: event, no replacement
     testing_env!(
-        VMContextBuilder::new().current_account_id(me()).predecessor_account_id(me()).build(),
+        VMContextBuilder::new()
+            .current_account_id(me())
+            .predecessor_account_id(me())
+            .signer_account_id(me())
+            .build(),
         near_sdk::test_vm_config(),
         near_sdk::RuntimeFeesConfig::test(),
         Default::default(),
@@ -1355,7 +1365,11 @@ fn b1_l1_existing_key_is_replaced() {
     // the automation key can't be turned into a device key
     let mut c2 = new_account();
     testing_env!(
-        VMContextBuilder::new().current_account_id(me()).predecessor_account_id(me()).build(),
+        VMContextBuilder::new()
+            .current_account_id(me())
+            .predecessor_account_id(me())
+            .signer_account_id(me())
+            .build(),
         near_sdk::test_vm_config(),
         near_sdk::RuntimeFeesConfig::test(),
         Default::default(),

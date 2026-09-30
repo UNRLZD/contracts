@@ -71,6 +71,17 @@ pub const MAX_SWAP_GAS_DCL: u64 = 150;
 pub const MAX_SWAP_GAS_PLACH: u64 = 265;
 /// A1-F1: a swap op must declare at least this much gas (it gets exactly its declared gas).
 pub const MIN_SWAP_GAS: u64 = 20;
+/// v1.5 (Shards): max gas of the wrap `ft_transfer_call` of a ShardsBuy (UI: 100 TGas) and of a
+/// token's `sell_exact_in` (ShardsSell).
+pub const MAX_SWAP_GAS_SHARDS_BUY: u64 = 150;
+pub const MAX_SWAP_GAS_SHARDS_SELL: u64 = 100;
+/// v1.5: attached to `withdraw_quote` (near_withdraw on wrap + native Transfer + its resolves).
+pub const GAS_SHARDS_WITHDRAW: u64 = 150;
+/// v1.5: static gas of `on_shards_sold`: itself + withdraw_quote + on_shards_settled + 2 action fees.
+pub const GAS_SHARDS_SOLD_CB: u64 = 5 + GAS_SHARDS_WITHDRAW + GAS_CALLBACK + 2 * GAS_PER_ACTION;
+/// v1.5: `max_total_fee_bps` sent with every Shards trade: the highest tax a Shards pool allows
+/// (10%) + the in-token AMM LP fee (1%). The trade's real bound is its `min_out`.
+pub const SHARDS_MAX_TOTAL_FEE_BPS: u16 = 1_100;
 const K_ORDER_NEXT: &[u8] = b"on";
 const K_AUTOMATION: &[u8] = b"ak";
 const GAS_AUTOMATION_CB: u64 = 5;
@@ -153,6 +164,32 @@ pub enum Op {
         dex: AccountId,
         token: AccountId,
         amount: Option<U128>,
+    },
+    /// v1.5: buy a Shards token (curve or in-token AMM) with `amount` wNEAR:
+    /// `wrap.ft_transfer_call{receiver_id: token, amount, msg}` where the contract builds msg
+    /// `{"v":1,"action":"buy","order_id","min_amount_out":min_out,"max_total_fee_bps","deadline_ns"}`
+    /// itself (no caller-supplied field, so no recipient: the token credits the sender = self).
+    /// `token` = `<label>.<F>` for an allowlisted ShardsToken factory F. Spend = amount.
+    ShardsBuy {
+        token: AccountId,
+        amount: U128,
+        min_out: U128,
+        gas: U64,
+    },
+    /// v1.5: sell `amount` of a Shards token for at least `min_out` wNEAR (net of tax and LP fee):
+    /// `token.sell_exact_in` (panics = reverted on any refusal), then `on_shards_sold` asks the
+    /// token to pay the exact credit out with `withdraw_quote{amount}` (never a `recipient_id`, so
+    /// it pays the caller = self, in native NEAR). Fee on what was credited AND arrived.
+    ShardsSell {
+        token: AccountId,
+        amount: U128,
+        min_out: U128,
+        gas: U64,
+    },
+    /// v1.5: pay out the account's own quote credit stuck in a Shards token (a sell whose payout
+    /// failed): `token.withdraw_quote{}`, which pays the caller = self. Not spend.
+    ShardsWithdrawQuote {
+        token: AccountId,
     },
 }
 
@@ -421,7 +458,9 @@ impl TradingAccount {
     /// goes Pending; the settle callback removes it (filled) or reopens it (swap failed).
     pub fn execute_order(&mut self, order_id: U64, ops: Vec<Op>) {
         self.assert_self();
-        // C1-M1: role by an explicit set (current + pending + retired automation keys)
+        // C1-M1: role by an explicit set (current + pending + retired automation keys).
+        // v1.4.9 (UNR-A-08): assert_self requires signer == self, so this is the key that signed
+        // the call, never the outer signer of a Delegate action.
         let relayer = is_relayer(&env::signer_account_pk());
         let now = env::block_timestamp();
         let mut order = load_order(order_id.0).unwrap_or_else(|| fail("E_NO_ORDER"));
@@ -501,6 +540,8 @@ impl TradingAccount {
         let mut swap: Option<(u128, u128, u128)> = None;
         // v1.4.3 (ORDER-001): how the swap's result proves a refund (see on_swap_settled).
         let mut proof = SwapProof::Token;
+        // v1.5: the token of a ShardsSell (its settle chain starts with on_shards_sold)
+        let mut shards_sell: Option<AccountId> = None;
         if ops.is_empty() {
             fail("E_BAD_OP");
         }
@@ -511,7 +552,9 @@ impl TradingAccount {
         // v1.2.1: StorageDeposit may only target wrap, an allowlisted DEX, or this execute's
         // swap input/output token (checked after the loop, once the swap is parsed).
         let mut storage_targets: Vec<AccountId> = vec![self.wrap.clone()];
-        storage_targets.extend(self.dex_allowlist.iter().map(|d| d.id.clone()));
+        storage_targets.extend(
+            self.dex_allowlist.iter().filter(|d| d.kind != DexKind::ShardsToken).map(|d| d.id.clone()),
+        );
         let mut storage_used: Vec<&AccountId> = Vec::new();
         for (i, op) in ops.iter().enumerate() {
             if let Some(o) = ord {
@@ -524,7 +567,13 @@ impl TradingAccount {
                     }
                 }
             }
-            let is_swap = matches!(op, Op::FtTransferCall { .. } | Op::PlachDepositNear { .. });
+            let is_swap = matches!(
+                op,
+                Op::FtTransferCall { .. }
+                    | Op::PlachDepositNear { .. }
+                    | Op::ShardsBuy { .. }
+                    | Op::ShardsSell { .. }
+            );
             // v1.1: at most one swap and it is the last op, so it is the last action of its
             // receiver batch and the batch result is the swap result seen by the callback.
             if is_swap && i != last {
@@ -562,6 +611,8 @@ impl TradingAccount {
                         DexKind::RheaClassic => MAX_SWAP_GAS_RHEA,
                         DexKind::RheaDcl => MAX_SWAP_GAS_DCL,
                         DexKind::Plach => MAX_SWAP_GAS_PLACH,
+                        // dex_kind never returns it (a ShardsToken entry is a factory, not a venue)
+                        DexKind::ShardsToken => fail("E_BAD_DEX"),
                     };
                     if gas.0 > max_gas * TGAS || gas.0 < MIN_SWAP_GAS * TGAS {
                         fail("E_GAS");
@@ -641,6 +692,55 @@ impl TradingAccount {
                     }
                     (GAS_PLACH_WITHDRAW * TGAS, 1)
                 }
+                Op::ShardsBuy { token, amount, min_out, gas } => {
+                    self.assert_shards(token);
+                    if amount.0 == 0 || min_out.0 == 0 {
+                        fail("E_BAD_OP");
+                    }
+                    if gas.0 > MAX_SWAP_GAS_SHARDS_BUY * TGAS || gas.0 < MIN_SWAP_GAS * TGAS {
+                        fail("E_GAS");
+                    }
+                    storage_targets.push(token.clone());
+                    let s = Swap { out_is_near: false, min_out: min_out.0, out: token.to_string() };
+                    if let Some(o) = ord {
+                        ok(check_order_swap(o, token, &self.wrap, amount.0, &s));
+                        order_swaps += 1;
+                    }
+                    // wNEAR input through wrap.ft_transfer_call: wrap's resolve reports what was used
+                    spend = ok(add(spend, amount.0));
+                    swap = Some((amount.0, amount.0, bps(amount.0, self.fee.fee_bps)));
+                    proof = SwapProof::Wrap;
+                    (gas.0, 1)
+                }
+                Op::ShardsSell { token, amount, min_out, gas } => {
+                    self.assert_shards(token);
+                    if amount.0 == 0 || min_out.0 == 0 {
+                        fail("E_BAD_OP");
+                    }
+                    if gas.0 > MAX_SWAP_GAS_SHARDS_SELL * TGAS || gas.0 < MIN_SWAP_GAS * TGAS {
+                        fail("E_GAS");
+                    }
+                    storage_targets.push(token.clone());
+                    let s = Swap { out_is_near: true, min_out: min_out.0, out: self.wrap.to_string() };
+                    if let Some(o) = ord {
+                        ok(check_order_swap(o, token, token, amount.0, &s));
+                        order_swaps += 1;
+                    }
+                    // Reserved (maximum pre-check) fee, as for every sell to NEAR: bps of the user's
+                    // bound (UNR-A-01: the stored order's min_out for a fire). What is charged is
+                    // bps of the credited output that actually arrived (on_shards_settled).
+                    let base = ord.map_or(min_out.0, |o| o.min_out.0.min(min_out.0));
+                    swap = Some((amount.0, 0, bps(base, self.fee.fee_bps)));
+                    proof = SwapProof::ShardsSell;
+                    shards_sell = Some(token.clone());
+                    // + the settle chain on_shards_sold schedules (withdraw_quote + callback), above
+                    // the GAS_CALLBACK the swap callback is budgeted with below; 2 x 1 yocto
+                    (gas.0 + (GAS_SHARDS_SOLD_CB - GAS_CALLBACK) * TGAS, 2)
+                }
+                Op::ShardsWithdrawQuote { token } => {
+                    self.assert_shards(token);
+                    (GAS_SHARDS_WITHDRAW * TGAS, 1)
+                }
                 Op::PlachDepositNear { dex, amount, msg, gas } => {
                     self.assert_plach(dex);
                     if amount.0 == 0 {
@@ -693,6 +793,9 @@ impl TradingAccount {
         // A1-F1: charge the WHOLE prepaid gas of this receipt: it upper-bounds everything the tx
         // can make any receipt burn (every call below gets exactly its declared gas, weight 0).
         let gas_spend = self.charge_gas(env::prepaid_gas().as_gas());
+        // v1.4.9 (UNR-A-10): an automation-key fire (assert_self: signer == self, so this is the
+        // signing key) passes its gas charge to the callback, which returns it on a reopen.
+        let relayer_gas = (order.is_some() && is_relayer(&env::signer_account_pk())).then_some(gas_spend);
         // v1.4.7: a relayer BUY charges its whole spend (wNEAR/NEAR input + storage + max fee) and
         // its gas bound to the weekly relayer allowance (at least allowance / 20 per fire, C1-L3).
         // A provable refund later returns the part that came back (input + fee); storage, gas and
@@ -793,6 +896,48 @@ impl TradingAccount {
                         0,
                     )
                 }
+                // v1.5: every field below is ours (no caller-supplied msg or recipient)
+                Op::ShardsBuy { token, amount, min_out, gas } => {
+                    let m = format!(
+                        "{{\"v\":1,\"action\":\"buy\",\"order_id\":{},\"min_amount_out\":\"{}\",\"max_total_fee_bps\":{},\"deadline_ns\":\"{}\"}}",
+                        jstr(client_order_id),
+                        min_out.0,
+                        SHARDS_MAX_TOTAL_FEE_BPS,
+                        shards_deadline(now)
+                    );
+                    (
+                        self.wrap.clone(),
+                        "ft_transfer_call",
+                        format!(
+                            "{{\"receiver_id\":\"{}\",\"amount\":\"{}\",\"msg\":{}}}",
+                            token,
+                            amount.0,
+                            jstr(&m)
+                        )
+                        .into_bytes(),
+                        1,
+                        gas.0,
+                        1,
+                    )
+                }
+                Op::ShardsSell { token, amount, min_out, gas } => (
+                    token,
+                    "sell_exact_in",
+                    format!(
+                        "{{\"amount\":\"{}\",\"min_amount_out\":\"{}\",\"max_total_fee_bps\":{},\"deadline_ns\":\"{}\"}}",
+                        amount.0,
+                        min_out.0,
+                        SHARDS_MAX_TOTAL_FEE_BPS,
+                        shards_deadline(now)
+                    )
+                    .into_bytes(),
+                    1,
+                    gas.0,
+                    1,
+                ),
+                Op::ShardsWithdrawQuote { token } => {
+                    (token, "withdraw_quote", b"{}".to_vec(), 1, GAS_SHARDS_WITHDRAW * TGAS, 0)
+                }
                 // `msg` was fully parsed by serde (no trailing input), so splicing it is exact.
                 Op::PlachDepositNear { dex, amount, msg, gas } => (
                     dex,
@@ -815,11 +960,7 @@ impl TradingAccount {
             last_idx = Some(idx);
         }
         if let (Some((amount, counted, f)), Some(idx)) = (swap, last_idx) {
-            env::promise_then(
-                idx,
-                me,
-                "on_swap_settled",
-                format!(
+            let settle = format!(
                     "{{\"client_order_id\":{},\"amount\":\"{}\",\"counted\":\"{}\",\"fee\":\"{}\",\"day_start\":\"{}\",\"proof\":\"{}\"{}}}",
                     jstr(client_order_id),
                     amount,
@@ -831,11 +972,26 @@ impl TradingAccount {
                         let r = rw.map_or(String::new(), |(w, c)| {
                             format!(",\"relayer_week\":\"{w}\",\"relayer_counted\":\"{c}\"")
                         });
-                        format!(",\"order_id\":\"{id}\"{r}")
+                        let g = relayer_gas.map_or(String::new(), |g| format!(",\"relayer_gas\":\"{g}\""));
+                        format!(",\"order_id\":\"{id}\"{r}{g}")
                     })
+            );
+            // v1.5: a Shards sell settles in two steps (credit -> payout to self -> settle)
+            let (method, args, g) = match shards_sell {
+                Some(t) => (
+                    "on_shards_sold",
+                    format!("{{\"token\":\"{}\",\"settle\":{}}}", t, jstr(&settle)),
+                    GAS_SHARDS_SOLD_CB,
                 ),
+                None => ("on_swap_settled", settle, GAS_CALLBACK),
+            };
+            env::promise_then(
+                idx,
+                me,
+                method,
+                args.as_bytes(),
                 NearToken::from_yoctonear(0),
-                Gas::from_tgas(GAS_CALLBACK),
+                Gas::from_tgas(g),
             );
         }
         // 8 (`fee` = maximum; charged in on_swap_settled only if the swap used its input)
@@ -868,6 +1024,7 @@ impl TradingAccount {
         relayer_week: Option<U64>,
         relayer_counted: Option<U128>,
         proof: Option<String>,
+        relayer_gas: Option<U128>,
     ) {
         let failed = matches!(env::promise_result_checked(0, 0), Err(PromiseError::Failed)); // TooLong = success
         let plach_near = proof.as_deref() == Some(SwapProof::PlachNear.as_str());
@@ -879,7 +1036,101 @@ impl TradingAccount {
             // unparseable success => treat as fully used (never under-count spend)
             Ok(b) => serde_json::from_slice::<U128>(&b).map_or(amount.0, |u| u.0.min(amount.0)),
         };
-        let mut charged = mul_div(fee.0, used, amount.0);
+        let charged = mul_div(fee.0, used, amount.0);
+        let a = SettleArgs {
+            client_order_id,
+            amount,
+            counted,
+            fee,
+            day_start,
+            order_id,
+            relayer_week,
+            relayer_counted,
+            proof,
+            relayer_gas,
+        };
+        self.finish_settle(a, failed, used, charged);
+    }
+
+    /// v1.5: step 2 of a ShardsSell, after `token.sell_exact_in`. Failed = the sell reverted (the
+    /// token panics on every refusal: slippage, phase, deadline) -> settled as a failed swap
+    /// (no fee, spend back, an order reopens). Success = the returned U128 is the wNEAR credited to
+    /// this account inside the token -> `token.withdraw_quote{amount}` (no `recipient_id`: the
+    /// token pays its caller, this account, in native NEAR), then `on_shards_settled`. A success
+    /// with no readable positive credit settles as used with no fee and no payout (whatever was
+    /// credited stays recoverable with a ShardsWithdrawQuote op).
+    #[private]
+    pub fn on_shards_sold(&mut self, token: AccountId, settle: String) {
+        let a: SettleArgs = serde_json::from_str(&settle).unwrap_or_else(|_| fail("E_JSON"));
+        let credit = match env::promise_result_checked(0, 64) {
+            Err(PromiseError::Failed) => {
+                return self.finish_settle(a, true, 0, 0);
+            }
+            Ok(b) => serde_json::from_slice::<U128>(&b).map_or(0, |c| c.0),
+            Err(_) => 0,
+        };
+        if credit == 0 {
+            let used = a.amount.0;
+            return self.finish_settle(a, false, used, 0);
+        }
+        // measured before the payout is scheduled: what arrives by on_shards_settled is on top
+        let liquid_before = liquid_balance();
+        let me = env::current_account_id();
+        let args = serde_json::to_string(&ShardsSettleArgs {
+            settle: a,
+            credit: U128(credit),
+            liquid_before: U128(liquid_before),
+        })
+        .unwrap_or_else(|_| fail("E_JSON"));
+        Promise::new(token)
+            .function_call(
+                "withdraw_quote",
+                format!("{{\"amount\":\"{credit}\"}}").into_bytes(),
+                NearToken::from_yoctonear(1),
+                Gas::from_tgas(GAS_SHARDS_WITHDRAW),
+            )
+            .then(Promise::new(me).function_call(
+                "on_shards_settled",
+                args.into_bytes(),
+                NearToken::from_yoctonear(0),
+                Gas::from_tgas(GAS_CALLBACK),
+            ))
+            .detach();
+    }
+
+    /// v1.5: step 3 of a ShardsSell. The sell happened (its input is used either way). The fee is
+    /// fee_bps of min(credit the token reported, liquid NEAR that actually arrived since
+    /// `on_shards_sold`): a token can't raise the fee above what it paid, and a failed payout (the
+    /// credit stays in the token, see ShardsWithdrawQuote) pays no fee.
+    #[private]
+    pub fn on_shards_settled(&mut self, settle: SettleArgs, credit: U128, liquid_before: U128) {
+        // v1.5 review: a failed payout (the credit stays in the token) pays no fee, whatever other
+        // NEAR arrived in the meantime.
+        let charged = if matches!(env::promise_result_checked(0, 0), Err(PromiseError::Failed)) {
+            0
+        } else {
+            let arrived = liquid_balance().saturating_sub(liquid_before.0);
+            bps(credit.0.min(arrived), self.fee.fee_bps)
+        };
+        let used = settle.amount.0;
+        self.finish_settle(settle, false, used, charged);
+    }
+
+    /// Settlement shared by every swap kind: the fee (`charged`, skipped if it would dip below
+    /// RESERVE), the daily window, and the order's fate.
+    fn finish_settle(&mut self, a: SettleArgs, failed: bool, used: u128, mut charged: u128) {
+        let SettleArgs {
+            client_order_id,
+            amount,
+            counted,
+            fee,
+            day_start,
+            order_id,
+            relayer_week,
+            relayer_counted,
+            proof,
+            relayer_gas,
+        } = a;
         // Accepted, user-favorable race: concurrent executes may have used the headroom the
         // fee was reserved in. Never dip below RESERVE for a fee; skip it and log it.
         if charged > 0 && check_reserve(liquid_balance(), charged).is_err() {
@@ -890,9 +1141,13 @@ impl TradingAccount {
             ));
             charged = 0;
         }
-        let back = (fee.0 - charged).saturating_add(counted.0 - mul_div(counted.0, used, amount.0));
+        let back =
+            fee.0.saturating_sub(charged).saturating_add(counted.0 - mul_div(counted.0, used, amount.0));
+        // v1.5: a Shards sell's fee is on its actual output, which can exceed the reserved maximum
+        // (bps of min_out); the excess is paid out of that output and counts as spend.
+        let extra = charged.saturating_sub(fee.0);
         if self.day.start_ns == day_start.0 {
-            self.day.spent_yocto = self.day.spent_yocto.saturating_sub(back);
+            self.day.spent_yocto = self.day.spent_yocto.saturating_sub(back).saturating_add(extra);
         }
         if charged > 0 {
             Promise::new(self.fee.fee_recipient.clone())
@@ -912,10 +1167,20 @@ impl TradingAccount {
                     Some(p) => p == SwapProof::Wrap.as_str(),
                     None => o.token_in == self.wrap,
                 };
-                if used == 0 && (failed || wrap_resolved) {
+                // v1.4.8 (UNR-A-02): a user-chosen token_in resolved to "0" (Successful). An
+                // honest NEP-141 does this when the DEX refused the swap (e.g. a min_out the
+                // pool can't meet), so consuming the order let a firing key delete stop-losses
+                // without a trade: it reopens too. Plach NEAR buys (ORDER-001) and pre-v1.4.3
+                // callbacks stay consumed.
+                let token_zero = proof.as_deref() == Some(SwapProof::Token.as_str());
+                if used == 0 && (failed || wrap_resolved || token_zero) {
                     o.pending = false;
                     save_order(id.0, &o);
-                    // v1.4.1: a provably failed relayer fire gives its weekly allowance back
+                    // v1.4.1: a failed relayer fire gives its weekly allowance back, minus the
+                    // allowance / 20 floor (RA7-1). v1.4.9 (UNR-A-09): also on a token "0", so an
+                    // honest DEX refusal of a relayer sell no longer costs its whole min_out from
+                    // the week. A lying token can't refill the week: the floor stays charged, so
+                    // at most 20 such fires a week (as for Failed).
                     if let (Some(wk), Some(c)) = (relayer_week, relayer_counted) {
                         let mut w = relayer_week_state();
                         if w.start_ns == wk.0 {
@@ -923,16 +1188,13 @@ impl TradingAccount {
                             save_relayer_week(&w);
                         }
                     }
-                    order_event("order_reopened", id.0);
-                } else if used == 0 && proof.as_deref() == Some(SwapProof::Token.as_str()) {
-                    // v1.4.8 (UNR-A-02): a user-chosen token_in resolved to "0" (Successful). An
-                    // honest NEP-141 does this when the DEX refused the swap (e.g. a min_out the
-                    // pool can't meet), so consuming the order let a firing key delete stop-losses
-                    // without a trade. Reopen it, but give nothing back to the relayer week (a
-                    // lying token can't refill it; A1-F4). Plach NEAR buys (ORDER-001) and
-                    // pre-v1.4.3 callbacks stay consumed.
-                    o.pending = false;
-                    save_order(id.0, &o);
+                    // v1.4.9 (UNR-A-10, A-11): a reopened relayer fire moved nothing, so its gas
+                    // charge leaves the daily gas tally again: a looping relayer key can no longer
+                    // fill the owner's daily cap and block the device. Its real gas is paid within
+                    // the automation key's FC allowance (RD8-1), which bounds such loops.
+                    if let Some(g) = relayer_gas.filter(|_| self.day.start_ns == day_start.0) {
+                        save_day_gas(day_start.0, day_gas(day_start.0).saturating_sub(g.0));
+                    }
                     order_event("order_reopened", id.0);
                 } else {
                     remove_order(id.0);
@@ -1010,7 +1272,8 @@ impl TradingAccount {
         {
             fail("E_BAD_ORDER");
         }
-        if dexes.iter().any(|d| self.dex_kind(d).is_none()) {
+        // v1.5: a Shards order names the token itself as its venue
+        if dexes.iter().any(|d| self.dex_kind(d).is_none() && !self.is_shards_token(d)) {
             fail("E_BAD_DEX");
         }
         if now >= expires_at_ns.0 {
@@ -1929,9 +2192,22 @@ impl TradingAccount {
 
     // ---------------- internal ----------------
 
+    /// Key paths (device methods and `execute_order`): the call must come from a transaction
+    /// this account signed itself with one of its access keys.
+    /// v1.4.9 (UNR-A-08): predecessor == self is not enough. A NEP-366 Delegate action signed by
+    /// one of our keys yields an inner receipt with predecessor == self, but its signer_id and
+    /// signer_account_pk are the OUTER transaction's. So `is_relayer(signer_account_pk)` misread
+    /// a delegated automation-key fire as a device fire. The outer signer of a Delegate to this
+    /// account is never this account: every key here is a function-call key, and an FC key can
+    /// sign only a FunctionCall, never a Delegate action. With signer == self, signer_account_pk
+    /// is the access key that signed the call. Fails closed for every delegated key call.
     fn assert_self(&self) {
-        if env::predecessor_account_id() != env::current_account_id() {
+        let me = env::current_account_id();
+        if env::predecessor_account_id() != me {
             fail("E_NOT_SELF");
+        }
+        if env::signer_account_id() != me {
+            fail("E_NOT_SELF_SIGNED");
         }
     }
 
@@ -2009,8 +2285,17 @@ impl TradingAccount {
         }
     }
 
+    /// Exact-id venues (Rhea classic / DCL / Plach). v1.5: a ShardsToken entry names a factory,
+    /// not a venue, so it never matches here (no ft_transfer_call, storage or order DEX = factory).
     fn dex_kind(&self, id: &AccountId) -> Option<DexKind> {
-        self.dex_allowlist.iter().find(|d| &d.id == id).map(|d| d.kind)
+        self.dex_allowlist.iter().find(|d| &d.id == id && d.kind != DexKind::ShardsToken).map(|d| d.kind)
+    }
+
+    /// v1.5: `token` is a Shards token under an allowlisted ShardsToken factory.
+    fn is_shards_token(&self, token: &AccountId) -> bool {
+        self.dex_allowlist
+            .iter()
+            .any(|d| d.kind == DexKind::ShardsToken && msg::shards_token_of(&d.id, token))
     }
 
     fn assert_dcl(&self, id: &AccountId) {
@@ -2021,6 +2306,12 @@ impl TradingAccount {
 
     fn assert_plach(&self, id: &AccountId) {
         if self.dex_kind(id) != Some(DexKind::Plach) {
+            fail("E_BAD_DEX");
+        }
+    }
+
+    fn assert_shards(&self, token: &AccountId) {
+        if !self.is_shards_token(token) {
             fail("E_BAD_DEX");
         }
     }
@@ -2230,6 +2521,8 @@ enum SwapProof {
     Token,
     /// Plach deposit_near (refund = failed receipt only)
     PlachNear,
+    /// v1.5: Shards `sell_exact_in` (refund = failed receipt only; settled via on_shards_sold)
+    ShardsSell,
 }
 
 impl SwapProof {
@@ -2238,8 +2531,44 @@ impl SwapProof {
             SwapProof::Wrap => "wrap",
             SwapProof::Token => "token",
             SwapProof::PlachNear => "plach_near",
+            SwapProof::ShardsSell => "shards_sell",
         }
     }
+}
+
+/// Arguments of the swap settlement (`on_swap_settled`'s, as JSON), v1.5 also carried by the
+/// Shards sell chain.
+#[near(serializers = [json])]
+#[derive(Clone, Debug)]
+pub struct SettleArgs {
+    pub client_order_id: String,
+    pub amount: U128,
+    pub counted: U128,
+    pub fee: U128,
+    pub day_start: U64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub order_id: Option<U64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub relayer_week: Option<U64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub relayer_counted: Option<U128>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub proof: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub relayer_gas: Option<U128>,
+}
+
+#[derive(Serialize)]
+#[serde(crate = "near_sdk::serde")]
+struct ShardsSettleArgs {
+    settle: SettleArgs,
+    credit: U128,
+    liquid_before: U128,
+}
+
+/// v1.5: `deadline_ns` of a Shards trade: the latest a device `execute` may be valid.
+fn shards_deadline(now: u64) -> u64 {
+    now.saturating_add(MAX_EXPIRY_AHEAD_NS)
 }
 
 /// (order id, order, relayer fire: (ISO week start, counted min_out)).
@@ -2629,6 +2958,7 @@ fn order_event(name: &str, id: u64) {
 fn check_order_op(o: &Order, op: &Op, wrap: &AccountId) -> Result<(), &'static str> {
     match op {
         Op::FtTransferCall { .. } | Op::PlachDepositNear { .. } => Ok(()),
+        Op::ShardsBuy { .. } | Op::ShardsSell { .. } => Ok(()),
         Op::StorageDeposit { .. } | Op::PlachRegisterAssets { .. } => Ok(()),
         Op::NearDeposit { amount } if &o.token_in == wrap && amount.0 <= o.amount_in.0 => Ok(()),
         _ => Err("E_ORDER_OPS"),

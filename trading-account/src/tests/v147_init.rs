@@ -37,7 +37,11 @@ fn v147_init_installs_automation_key_through_role_set() {
     assert_eq!(c.get_config().caps, caps(UNLIMITED, UNLIMITED));
     // the callback stores it, as for owner_set_automation_key
     testing_env!(
-        VMContextBuilder::new().current_account_id(me()).predecessor_account_id(me()).build(),
+        VMContextBuilder::new()
+            .current_account_id(me())
+            .predecessor_account_id(me())
+            .signer_account_id(me())
+            .build(),
         near_sdk::test_vm_config(),
         near_sdk::RuntimeFeesConfig::test(),
         Default::default(),

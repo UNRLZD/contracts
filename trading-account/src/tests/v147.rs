@@ -35,6 +35,7 @@ fn settle_scheduled(c: &mut TradingAccount, result: PromiseResult) {
         VMContextBuilder::new()
             .current_account_id(me())
             .predecessor_account_id(me())
+            .signer_account_id(me())
             .storage_usage(STORAGE_BYTES)
             .account_balance(NearToken::from_yoctonear(10 * NEAR))
             .block_timestamp(T0 + 3)
@@ -54,6 +55,7 @@ fn settle_scheduled(c: &mut TradingAccount, result: PromiseResult) {
         u64_("relayer_week"),
         u("relayer_counted"),
         s("proof"),
+        u("relayer_gas"),
     );
 }
 

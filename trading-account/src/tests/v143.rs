@@ -30,6 +30,7 @@ fn settle_scheduled(c: &mut TradingAccount, result: PromiseResult) {
         VMContextBuilder::new()
             .current_account_id(me())
             .predecessor_account_id(me())
+            .signer_account_id(me())
             .storage_usage(STORAGE_BYTES)
             .account_balance(NearToken::from_yoctonear(10 * NEAR))
             .block_timestamp(T0 + 3)
@@ -49,6 +50,7 @@ fn settle_scheduled(c: &mut TradingAccount, result: PromiseResult) {
         u64_("relayer_week"),
         u("relayer_counted"),
         s("proof"),
+        u("relayer_gas"),
     );
 }
 
@@ -317,7 +319,11 @@ fn v143_sc3_init_registration_reported() {
     let c = new_account();
     assert!(c.get_init_registration().is_empty(), "not reported before the callback");
     testing_env!(
-        VMContextBuilder::new().current_account_id(me()).predecessor_account_id(me()).build(),
+        VMContextBuilder::new()
+            .current_account_id(me())
+            .predecessor_account_id(me())
+            .signer_account_id(me())
+            .build(),
         near_sdk::test_vm_config(),
         near_sdk::RuntimeFeesConfig::test(),
         Default::default(),
@@ -405,6 +411,7 @@ fn v143_withdraw_all_reports_unreadable_token() {
         VMContextBuilder::new()
             .current_account_id(me())
             .predecessor_account_id(me())
+            .signer_account_id(me())
             .account_balance(NearToken::from_yoctonear(10 * NEAR))
             .storage_usage(STORAGE_BYTES)
             .build(),

@@ -24,6 +24,7 @@ fn settle_scheduled(c: &mut TradingAccount, result: PromiseResult) -> Value {
         VMContextBuilder::new()
             .current_account_id(me())
             .predecessor_account_id(me())
+            .signer_account_id(me())
             .storage_usage(STORAGE_BYTES)
             .account_balance(NearToken::from_yoctonear(10 * NEAR))
             .block_timestamp(T0 + 3)
@@ -43,6 +44,7 @@ fn settle_scheduled(c: &mut TradingAccount, result: PromiseResult) -> Value {
         u64_("relayer_week"),
         u("relayer_counted"),
         s("proof"),
+        u("relayer_gas"),
     );
     args
 }
@@ -116,7 +118,7 @@ fn unr_a01_limit_buy_fee_independent_of_msg_min_out() {
 
 /// UNR-A-02: a relayer fire with an unreachable min_out made an honest token resolve to "0"
 /// (Successful) and the SELL order was deleted (v1.4.7). Fixed: a Successful "0" reopens the
-/// order; the weekly allowance stays charged (no refill).
+/// order; the weekly allowance keeps the floor (v1.4.9, UNR-A-09: the rest comes back).
 #[test]
 fn unr_a02_relayer_cannot_delete_a_sell_order() {
     let amt = 10u128.pow(24);
@@ -129,7 +131,8 @@ fn unr_a02_relayer_cannot_delete_a_sell_order() {
     ctx(me().as_str(), 0, 10 * NEAR, T0 + 4);
     let o = c.get_order(U64(id)).expect("order still stored");
     assert!(!o.pending, "reopened");
-    assert_eq!(c.get_relayer_week().spent_yocto.0, NEAR, "allowance stays charged");
+    // v1.4.9 (UNR-A-09): like a Failed fire, only the allowance / 20 floor stays charged
+    assert_eq!(c.get_relayer_week().spent_yocto.0, 10 * NEAR / 20, "the floor stays charged");
     // the device (tab runner) can still fire the stop-loss
     ctx(me().as_str(), 0, 10 * NEAR, T0 + 5);
     c.execute_order(U64(id), order_sell_ops(amt, NEAR));

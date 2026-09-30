@@ -1,6 +1,6 @@
 [package]
 name = "factory"
-version = "1.1.1"
+version = "1.2.0"
 edition = "2021"
 # v1.4.3 (MSRV-002): the toolchain this is built and tested with (reproducible image: 1.97.1)
 rust-version = "1.96"

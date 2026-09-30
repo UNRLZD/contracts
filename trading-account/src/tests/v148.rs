@@ -25,7 +25,7 @@ fn settle_args() -> Value {
 }
 
 /// Replays the scheduled on_swap_settled with `result` at `now`.
-fn settle(c: &mut TradingAccount, result: PromiseResult, now: u64) {
+pub(super) fn settle(c: &mut TradingAccount, result: PromiseResult, now: u64) {
     let args = settle_args();
     let s = |k: &str| args[k].as_str().map(String::from);
     let u = |k: &str| s(k).map(|v| U128(v.parse().unwrap()));
@@ -34,6 +34,7 @@ fn settle(c: &mut TradingAccount, result: PromiseResult, now: u64) {
         VMContextBuilder::new()
             .current_account_id(me())
             .predecessor_account_id(me())
+            .signer_account_id(me())
             .storage_usage(STORAGE_BYTES)
             .account_balance(NearToken::from_yoctonear(10 * NEAR))
             .block_timestamp(now)
@@ -53,6 +54,7 @@ fn settle(c: &mut TradingAccount, result: PromiseResult, now: u64) {
         u64_("relayer_week"),
         u("relayer_counted"),
         s("proof"),
+        u("relayer_gas"),
     );
 }
 
