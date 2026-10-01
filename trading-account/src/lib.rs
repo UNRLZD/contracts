@@ -8,11 +8,16 @@ use near_sdk::{
     PromiseError, PublicKey,
 };
 
+pub mod chain;
 pub mod intents;
 pub mod msg;
+pub mod msg_venues;
+pub mod owner;
 pub mod policy;
 #[cfg(test)]
 mod tests;
+pub mod upgrade;
+pub mod venues;
 
 use intents::{Dest, OneClickConfig};
 use msg::{Ctx, DexKind, Swap};
@@ -191,6 +196,24 @@ pub enum Op {
     ShardsWithdrawQuote {
         token: AccountId,
     },
+    /// v1.6: buy on a launchpad curve venue (venues/*.rs builds every call; no caller msg,
+    /// method or recipient). Last op (one swap).
+    CurveBuy(venues::CurveTrade),
+    /// v1.6: sell on a launchpad curve venue. Last op (one swap).
+    CurveSell(venues::CurveTrade),
+    /// v1.6: venue housekeeping that pays this account (claims, withdraws of own balances,
+    /// Kelytra register/deposit). Not a swap.
+    CurveClaim(venues::CurveClaim),
+    /// v1.6 (routing C.1): two on-chain legs, one signature; leg 2's input = min(Q delta
+    /// measured inside the route, max_mid). Last op (one swap).
+    Chain(Box<chain::Chain>),
+    /// v1.6 (routing C.2): NEAR -> Q through a signed 1Click quote into this account's intents
+    /// balance; a continuation (`execute_order` on a cont id) pulls and swaps. Device only.
+    IntentsSwap(chain::IntentsSwap),
+    /// v1.6: continuation step only (`execute_order` on a cont id); refused in `execute`.
+    IntentsPull(chain::exec::IntentsPull),
+    /// v1.6 (F-01): device veto of the pending auto-upgrade (restrict-only; no swap).
+    CancelAutoUpgrade {},
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -228,6 +251,9 @@ pub struct OrderView {
     pub id: U64,
     #[serde(flatten)]
     pub order: Order,
+    /// v1.6: a Chain order's stored legs (absent for a plain order)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub via: Option<chain::OrderVia>,
 }
 
 #[near(contract_state)]
@@ -264,6 +290,7 @@ fn ok<T>(r: Result<T, &'static str>) -> T {
 #[near]
 impl TradingAccount {
     #[init]
+    #[allow(clippy::too_many_arguments)]
     pub fn init(
         owner: AccountId,
         fee_config: FeeConfig,
@@ -271,8 +298,21 @@ impl TradingAccount {
         dex_allowlist: Vec<Dex>,
         wrap: AccountId,
         automation: Option<AutomationInit>,
+        owner_auth: Option<owner_auth::OwnerAuthInit>,
+        code_hash: Option<Base58CryptoHash>,
     ) -> Self {
         require!(fee_config.fee_bps <= MAX_FEE_BPS, "E_FEE");
+        // v1.6: owner kind + salt (factory 1.3.0 passes `owner_auth` for a verified signed
+        // creation; absent = the id rule, docs/owner-v16-spec.md §3)
+        owner::write_initial_owner_auth(&owner, owner_auth);
+        // v1.6 (F-03): state version
+        upgrade::write_state_version();
+        // v1.6 (R2-11): the code the factory created this account with (factory 1.3.0 passes its
+        // effective hash), so auto-upgrade never schedules the code the account already runs
+        if let Some(h) = code_hash {
+            let c: near_sdk::CryptoHash = h.into();
+            env::storage_write(upgrade::K_CODE_HASH, &c);
+        }
         // v1.4.7: one-signature onboarding with 24/7 orders on. The factory passes the owner's
         // automation key here (never as a raw AddKey in its batch): the account installs it
         // through the same path as owner_set_automation_key, so it is in the relayer role set
@@ -430,6 +470,36 @@ impl TradingAccount {
                 env::storage_remove(K_INSTALLING);
             }
         }
+        // v1.6: owner kind + salt for accounts from before 1.6.0 (idempotent; §3 id rule, owner
+        // signatures on only for `0x` owners)
+        if !env::storage_has_key(owner::K_OWNER_AUTH) {
+            owner::write_initial_owner_auth(&s.owner, None);
+        }
+        // v1.6 (F2, external audit): records that fail closed (E_STATE) from now on are brought to
+        // this layout first: routes from builds before 9a0dd084 are rewritten; a Chain order whose
+        // via predates V16-01 (no leg-1 bound, can never fire safely) is cancelled.
+        let rewritten = chain::migrate_routes();
+        if rewritten > 0 {
+            env::log_str(&format!(
+                "EVENT_JSON:{{\"standard\":\"nttrade\",\"version\":\"1\",\"event\":\"routes_migrated\",\"data\":{{\"count\":{rewritten}}}}}"
+            ));
+        }
+        // v1.6 (F3, external audit): never install under in-flight work. The doors check before
+        // the batch; this re-checks in the batch receipt itself (UseGlobalContract + migrate are one
+        // receipt), so a trade that started in between reverts the whole upgrade (code included).
+        // After migrate_routes (in_flight reads routes), BEFORE the via cleanup below (INDEP-4: a
+        // pending fire of such an order still blocks the install).
+        if upgrade::in_flight() {
+            fail("E_IN_FLIGHT");
+        }
+        for (id, _) in order_index() {
+            if chain::via_unreadable(id) {
+                remove_order(id);
+                order_event("order_cancelled", id);
+            }
+        }
+        // v1.6 (F-03): the state version this code leaves (later code dispatches on it)
+        upgrade::write_state_version();
         s
     }
 
@@ -438,7 +508,17 @@ impl TradingAccount {
     pub fn execute(&mut self, ops: Vec<Op>, client_order_id: String, expires_at_ns: U64, max_in_yocto: U128) {
         // 1 (v1.3: and not the automation key)
         self.assert_device();
+        // v1.6 (R2-03): a veto-only execute is a safety action like cancel_order / lower_caps:
+        // charged, never refused by the daily cap
+        if matches!(ops.as_slice(), [Op::CancelAutoUpgrade {}]) {
+            self.charge_device_gas(true);
+            return upgrade::veto("device");
+        }
         let now = env::block_timestamp();
+        // F1: settle expired routes' escrow (one read when nothing is escrowed)
+        if chain::escrow_total() > 0 {
+            chain::expire_routes(&self.fee.fee_recipient);
+        }
         // 2
         ok(check_expiry(now, expires_at_ns.0));
         // 3
@@ -461,9 +541,15 @@ impl TradingAccount {
         // C1-M1: role by an explicit set (current + pending + retired automation keys).
         // v1.4.9 (UNR-A-08): assert_self requires signer == self, so this is the key that signed
         // the call, never the outer signer of a Delegate action.
+        // v1.6 (routing C.2.4): continuation ids >= 2^63 (pull + one swap within stored terms)
+        if order_id.0 >= chain::CONT_BASE {
+            return self.fire_continuation(order_id.0, ops);
+        }
         let relayer = is_relayer(&env::signer_account_pk());
         let now = env::block_timestamp();
         let mut order = load_order(order_id.0).unwrap_or_else(|| fail("E_NO_ORDER"));
+        // v1.6: an order with stored Chain legs fires only a Chain, a plain order never one
+        ok(chain::check_order_kind(chain::load_via(order_id.0).is_some(), &ops));
         if order.pending {
             fail("E_ORDER_PENDING");
         }
@@ -542,6 +628,14 @@ impl TradingAccount {
         let mut proof = SwapProof::Token;
         // v1.5: the token of a ShardsSell (its settle chain starts with on_shards_sold)
         let mut shards_sell: Option<AccountId> = None;
+        // v1.6: the planned curve trade (the swap op), built once here and dispatched below
+        let mut curve: Option<venues::Plan> = None;
+        // v1.6 (taxed tokens): an order fire whose output token taxes transfers after the DEX's
+        // min_out check is gated on the token's own tax view (venues/tax.rs)
+        let mut tax_gate: Option<venues::tax::Gate> = None;
+        let mut gated: Option<venues::tax::GatedCall> = None;
+        // v1.6: a Chain / IntentsSwap op (dispatched with the settle args, step 7)
+        let mut route: Option<(Op, Option<chain::exec::IntentsPlan>)> = None;
         if ops.is_empty() {
             fail("E_BAD_OP");
         }
@@ -553,7 +647,7 @@ impl TradingAccount {
         // swap input/output token (checked after the loop, once the swap is parsed).
         let mut storage_targets: Vec<AccountId> = vec![self.wrap.clone()];
         storage_targets.extend(
-            self.dex_allowlist.iter().filter(|d| d.kind != DexKind::ShardsToken).map(|d| d.id.clone()),
+            self.dex_allowlist.iter().filter(|d| !venues::is_factory_entry(d.kind)).map(|d| d.id.clone()),
         );
         let mut storage_used: Vec<&AccountId> = Vec::new();
         for (i, op) in ops.iter().enumerate() {
@@ -573,6 +667,10 @@ impl TradingAccount {
                     | Op::PlachDepositNear { .. }
                     | Op::ShardsBuy { .. }
                     | Op::ShardsSell { .. }
+                    | Op::CurveBuy(_)
+                    | Op::CurveSell(_)
+                    | Op::Chain(_)
+                    | Op::IntentsSwap(_)
             );
             // v1.1: at most one swap and it is the last op, so it is the last action of its
             // receiver batch and the batch result is the swap result seen by the callback.
@@ -599,20 +697,40 @@ impl TradingAccount {
                     if amount.0 == 0 || token == &me {
                         fail("E_BAD_OP");
                     }
-                    let kind = self.dex_kind(receiver_id).unwrap_or_else(|| fail("E_BAD_DEX"));
+                    // v1.6: a TokenCurve token is a venue by suffix of its allowlisted factory
+                    let kind = self
+                        .dex_kind(receiver_id)
+                        .or_else(|| venues::token_curve_kind(&self.dex_allowlist, receiver_id))
+                        .unwrap_or_else(|| fail("E_BAD_DEX"));
                     let ctx = Ctx {
                         self_id: &me,
                         wrap: &self.wrap,
                         token_in: token,
                         referrer: &self.fee.fee_recipient,
                     };
-                    let s = ok(msg::parse(kind, msg, &ctx));
+                    let s = match kind {
+                        DexKind::RheaClassic | DexKind::RheaDcl | DexKind::Plach | DexKind::ShardsToken => {
+                            ok(msg::parse(kind, msg, &ctx))
+                        }
+                        _ => ok(msg_venues::parse(
+                            kind,
+                            msg,
+                            &msg_venues::VCtx {
+                                self_id: &me,
+                                wrap: &self.wrap,
+                                token_in: token,
+                                receiver: receiver_id,
+                                referrer: &self.fee.fee_recipient,
+                            },
+                        )),
+                    };
                     let max_gas = match kind {
                         DexKind::RheaClassic => MAX_SWAP_GAS_RHEA,
                         DexKind::RheaDcl => MAX_SWAP_GAS_DCL,
                         DexKind::Plach => MAX_SWAP_GAS_PLACH,
                         // dex_kind never returns it (a ShardsToken entry is a factory, not a venue)
                         DexKind::ShardsToken => fail("E_BAD_DEX"),
+                        _ => venues::MAX_CURVE_GAS,
                     };
                     if gas.0 > max_gas * TGAS || gas.0 < MIN_SWAP_GAS * TGAS {
                         fail("E_GAS");
@@ -621,9 +739,18 @@ impl TradingAccount {
                     if let Ok(t) = s.out.parse::<AccountId>() {
                         storage_targets.push(t);
                     }
+                    // v1.6 (routing C.3): no swap touches a Q a route holds in flight
+                    chain::assert_free(token.as_str());
+                    chain::assert_free(&s.out);
                     if let Some(o) = ord {
+                        // v1.6: a presale deposit (symbolic min_out) is never an order fire
+                        if !venues::orderable_kind(kind) {
+                            fail("E_ORDER_OPS");
+                        }
                         ok(check_order_swap(o, receiver_id, token, amount.0, &s));
                         order_swaps += 1;
+                        tax_gate =
+                            venues::tax::gate_for(&s.out, receiver_id.as_str(), o.min_out.0, s.min_out);
                     }
                     let (counted, f) = if token == &self.wrap {
                         proof = SwapProof::Wrap;
@@ -694,6 +821,7 @@ impl TradingAccount {
                 }
                 Op::ShardsBuy { token, amount, min_out, gas } => {
                     self.assert_shards(token);
+                    chain::assert_free(token.as_str());
                     if amount.0 == 0 || min_out.0 == 0 {
                         fail("E_BAD_OP");
                     }
@@ -714,6 +842,7 @@ impl TradingAccount {
                 }
                 Op::ShardsSell { token, amount, min_out, gas } => {
                     self.assert_shards(token);
+                    chain::assert_free(token.as_str());
                     if amount.0 == 0 || min_out.0 == 0 {
                         fail("E_BAD_OP");
                     }
@@ -741,12 +870,122 @@ impl TradingAccount {
                     self.assert_shards(token);
                     (GAS_SHARDS_WITHDRAW * TGAS, 1)
                 }
+                Op::CurveBuy(t) | Op::CurveSell(t) => {
+                    let vctx = venues::Ctx {
+                        me: &me,
+                        wrap: &self.wrap,
+                        fee_bps: self.fee.fee_bps,
+                        now_ns: now,
+                        order_min_out: ord.map(|o| o.min_out.0),
+                    };
+                    let p = ok(venues::plan(&self.dex_allowlist, matches!(op, Op::CurveBuy(_)), t, &vctx));
+                    storage_targets.extend(p.storage.iter().cloned());
+                    chain::assert_free(p.token_in.as_str());
+                    chain::assert_free(&p.swap.out);
+                    // R2-05: a Nearrr buy holds its output token until its settle (refund proof)
+                    venues::factory::lock_output(&p, client_order_id);
+                    if let Some(o) = ord {
+                        if !p.orderable {
+                            fail("E_ORDER_OPS");
+                        }
+                        ok(check_order_swap(o, &p.order_dex, &p.token_in, t.amount.0, &p.swap));
+                        order_swaps += 1;
+                    }
+                    // AUDIT-T0: a token0 buy's fill size is the user's stored max_out
+                    if let Some((id, ..)) = order.as_ref() {
+                        ok(venues::order_terms::check(*id, t.max_out));
+                    }
+                    spend = ok(add(spend, p.spend));
+                    swap = Some((t.amount.0, p.counted, p.fee));
+                    proof = SwapProof::from_curve(p.settle);
+                    // A1 review: every planned call beyond the first is one more action (its fee
+                    // is pre-charged from the prepaid gas like the per-op GAS_PER_ACTION below)
+                    let extra = (p.calls.len() as u64).saturating_sub(1) * GAS_PER_ACTION * TGAS;
+                    let r = (p.gas.saturating_add(extra), p.native_out);
+                    curve = Some(p);
+                    r
+                }
+                Op::Chain(c) => {
+                    let e = self.route_env(&me, now);
+                    let p = ok(chain::check_chain(&e, c, ord.is_some(), ord.map(|o| o.min_out.0)));
+                    // V16-08: a route id is unique while the route lives
+                    ok(chain::check_route_id(client_order_id, ord.is_some()));
+                    // v1.6 rev 2: q, the input and the output may be registered in the same execute
+                    for t in [c.q.as_str(), &p.token_in, &p.token_out] {
+                        chain::assert_free(t);
+                        if let Ok(t) = t.parse::<AccountId>() {
+                            storage_targets.push(t);
+                        }
+                    }
+                    if let (Some(o), Some((id, ..))) = (ord, order.as_ref()) {
+                        ok(chain::check_chain_order(o, chain::load_via(*id).as_ref(), c, &p));
+                        // AUDIT-T0: a curve leg 1's max_out is the stored one; leg 2 never has one
+                        if let chain::ChainLeg::CurveBuy(t) = &c.leg1 {
+                            ok(venues::order_terms::check(*id, t.max_out));
+                        }
+                        if matches!(&c.leg2, chain::ChainLeg::CurveBuy(t) if t.max_out.is_some()) {
+                            fail("E_ORDER_MISMATCH");
+                        }
+                        order_swaps += 1;
+                        let (l2_dex, l2_min) =
+                            p.l2.as_ref().map_or((String::new(), 0), |l| (l.dex.to_string(), l.min_out));
+                        tax_gate = venues::tax::gate_for(&p.token_out, &l2_dex, o.min_out.0, l2_min)
+                            .map(|g| venues::tax::Gate { native_out: U128(p.native_out), ..g });
+                    }
+                    // AUDIT-S1: a curve leg's storage / buy extra counts too (never returned)
+                    spend = ok(add(spend, ok(add(p.counted, p.extra_spend))));
+                    swap = Some((p.l1.amount, p.counted, p.fee));
+                    proof = SwapProof::of_leg(p.l1.proof);
+                    route = Some((op.clone(), None));
+                    (p.gas, p.native_out)
+                }
+                Op::IntentsSwap(s) => {
+                    // never from an order fire (owner decision: the relayer can't fund 1Click)
+                    let e = self.route_env(&me, now);
+                    let ip = ok(chain::exec::check_intents_swap(&e, s, ord.is_some()));
+                    // V16-08: a route id is unique while the route lives
+                    ok(chain::check_route_id(client_order_id, false));
+                    // v1.6 rev 2: a continuation can't register storage, so this signed execute
+                    // may (StorageDeposit ops before it: q and the continuation's output)
+                    storage_targets.push(s.q.clone());
+                    storage_targets.push(s.cont.token_out.clone());
+                    let amount = ip.quote.amount;
+                    spend = ok(add(spend, amount));
+                    swap = Some((amount, amount, ip.fee));
+                    proof = SwapProof::Wrap;
+                    route = Some((op.clone(), Some(ip)));
+                    ((chain::exec::GAS_VERIFIER + chain::GAS_CHAIN_CB + chain::GAS_ACTION) * TGAS, 1)
+                }
+                Op::IntentsPull(_) => fail("E_BAD_OP"),
+                // v1.6 (F-01): restrict-only veto, applied in step 7; moves nothing
+                Op::CancelAutoUpgrade {} => (0, 0),
+                Op::CurveClaim(cl) => {
+                    let vctx = venues::Ctx {
+                        me: &me,
+                        wrap: &self.wrap,
+                        fee_bps: self.fee.fee_bps,
+                        now_ns: now,
+                        order_min_out: None,
+                    };
+                    let (c, sp) = ok(venues::plan_claim(&self.dex_allowlist, cl, &vctx));
+                    spend = ok(add(spend, sp));
+                    if let Some(t) = &cl.token {
+                        // R2-05: the only claim that sends its token (`t.ft_transfer_call` to the
+                        // exchange); every other claim's token comes in or is a storage target
+                        if cl.action == venues::ClaimAction::KelytraDeposit {
+                            chain::assert_free(t.as_str());
+                        }
+                        storage_targets.push(t.clone());
+                    }
+                    (c.gas, c.deposit)
+                }
                 Op::PlachDepositNear { dex, amount, msg, gas } => {
                     self.assert_plach(dex);
                     if amount.0 == 0 {
                         fail("E_BAD_OP");
                     }
                     let s = ok(msg::parse_plach_near(msg, &me, &self.wrap, &self.fee.fee_recipient));
+                    chain::assert_free(&s.out);
                     if gas.0 > MAX_SWAP_GAS_PLACH * TGAS || gas.0 < MIN_SWAP_GAS * TGAS {
                         fail("E_GAS");
                     }
@@ -756,6 +995,7 @@ impl TradingAccount {
                     if let Some(o) = ord {
                         ok(check_order_swap(o, dex, &self.wrap, amount.0, &s));
                         order_swaps += 1;
+                        tax_gate = venues::tax::gate_for(&s.out, dex.as_str(), o.min_out.0, s.min_out);
                     }
                     spend = ok(add(spend, amount.0));
                     swap = Some((amount.0, amount.0, bps(amount.0, self.fee.fee_bps)));
@@ -778,6 +1018,10 @@ impl TradingAccount {
         let fee = swap.map_or(0, |s| s.2);
         if swap.is_some() {
             gas = gas.checked_add((GAS_CALLBACK + GAS_PER_ACTION) * TGAS).unwrap_or_else(|| fail("E_GAS"));
+        }
+        // v1.6 (taxed tokens): a gated fire also attaches the tax view + its gate callback
+        if tax_gate.is_some() {
+            gas = gas.checked_add(venues::tax::GATE_EXTRA_TGAS * TGAS).unwrap_or_else(|| fail("E_GAS"));
         }
         spend = ok(add(spend, fee));
         // The fee is paid later (on success) but must be affordable now.
@@ -817,12 +1061,13 @@ impl TradingAccount {
                 *rw = Some((w.start_ns, charge.saturating_sub(kept.max(floor))));
             }
         }
-        ok(check_reserve(liquid_balance(), native_out));
+        // v1.6: escrowed route fees stay liquid (routing C.2.2)
+        ok(check_reserve(liquid_balance().saturating_sub(chain::escrow_total()), native_out));
         // 7: one promise per receiver, all independent; only the swap gets a callback.
         let mut batches: Vec<(AccountId, near_sdk::PromiseIndex)> = Vec::with_capacity(4);
         let mut last_idx = None;
         for op in ops {
-            let (rcv, method, args, deposit, g, _weight_unused) = match op {
+            let (rcv, method, args, deposit, g, swap_w) = match op {
                 Op::NearDeposit { amount } => {
                     (self.wrap.clone(), "near_deposit", b"{}".to_vec(), amount.0, GAS_NEAR_DEPOSIT * TGAS, 0)
                 }
@@ -938,6 +1183,40 @@ impl TradingAccount {
                 Op::ShardsWithdrawQuote { token } => {
                     (token, "withdraw_quote", b"{}".to_vec(), 1, GAS_SHARDS_WITHDRAW * TGAS, 0)
                 }
+                // v1.6: the calls planned (and checked) in step 4, in order, one receiver
+                Op::CurveBuy(_) | Op::CurveSell(_) => {
+                    let p = curve.as_ref().unwrap_or_else(|| fail("E_BAD_OP"));
+                    for c in &p.calls {
+                        let idx = batch_for(&mut batches, c.receiver.clone());
+                        env::promise_batch_action_function_call_weight(
+                            idx,
+                            c.method,
+                            c.args.as_bytes(),
+                            NearToken::from_yoctonear(c.deposit),
+                            Gas::from_gas(c.gas),
+                            GasWeight(0),
+                        );
+                        last_idx = Some(idx);
+                    }
+                    continue;
+                }
+                // v1.6: dispatched after this loop with the settle args
+                Op::Chain(_) | Op::IntentsSwap(_) | Op::IntentsPull(_) => continue,
+                Op::CancelAutoUpgrade {} => {
+                    upgrade::veto("device");
+                    continue;
+                }
+                Op::CurveClaim(cl) => {
+                    let vctx = venues::Ctx {
+                        me: &me,
+                        wrap: &self.wrap,
+                        fee_bps: self.fee.fee_bps,
+                        now_ns: now,
+                        order_min_out: None,
+                    };
+                    let (c, _) = ok(venues::plan_claim(&self.dex_allowlist, &cl, &vctx));
+                    (c.receiver, c.method, c.args.into_bytes(), c.deposit, c.gas, 0)
+                }
                 // `msg` was fully parsed by serde (no trailing input), so splicing it is exact.
                 Op::PlachDepositNear { dex, amount, msg, gas } => (
                     dex,
@@ -948,6 +1227,20 @@ impl TradingAccount {
                     1,
                 ),
             };
+            // v1.6 (taxed tokens): a gated fire's swap (the last op) is sent by on_tax_gate, after
+            // the output token's tax view, which runs after this receiver's earlier batch
+            if let (1, Some(gt)) = (swap_w, tax_gate.as_ref()) {
+                let after = batches.iter().find(|(a, _)| a == &rcv).map(|(_, i)| *i);
+                last_idx = Some(venues::tax::schedule_view(gt, after));
+                gated = Some(venues::tax::GatedCall {
+                    receiver: rcv,
+                    method: method.to_string(),
+                    args: String::from_utf8(args).unwrap_or_else(|_| fail("E_JSON")),
+                    deposit: U128(deposit),
+                    gas: U64(g),
+                });
+                continue;
+            }
             let idx = batch_for(&mut batches, rcv);
             env::promise_batch_action_function_call_weight(
                 idx,
@@ -959,7 +1252,9 @@ impl TradingAccount {
             );
             last_idx = Some(idx);
         }
-        if let (Some((amount, counted, f)), Some(idx)) = (swap, last_idx) {
+        if let (Some((amount, counted, f)), true) = (swap, last_idx.is_some() || route.is_some()) {
+            // v1.6 (R2-09): a settle is in flight; the permissionless auto-upgrade waits for it
+            upgrade::mark_in_flight(upgrade::SETTLE_WINDOW_BLOCKS);
             let settle = format!(
                     "{{\"client_order_id\":{},\"amount\":\"{}\",\"counted\":\"{}\",\"fee\":\"{}\",\"day_start\":\"{}\",\"proof\":\"{}\"{}}}",
                     jstr(client_order_id),
@@ -976,6 +1271,28 @@ impl TradingAccount {
                         format!(",\"order_id\":\"{id}\"{r}{g}")
                     })
             );
+            // v1.6: a route runs its own promise chain and settles itself
+            let routed = match route.take() {
+                Some((Op::Chain(c), _)) => {
+                    // v1.6 (taxed tokens): a gated Chain fire starts after the output's tax view
+                    match tax_gate.as_ref() {
+                        Some(gt) => {
+                            let start = self.budgets(&c).0;
+                            venues::tax::gate_chain(gt, *c, start, &settle, client_order_id)
+                        }
+                        None => self.dispatch_chain(*c, &settle, client_order_id),
+                    }
+                    true
+                }
+                Some((Op::IntentsSwap(s), Some(ip))) => {
+                    // v1.6: what this execute counted, released if the route is proven refunded
+                    save_route_spend(client_order_id, day_start, ip.quote.amount, ip.fee);
+                    self.dispatch_intents(s, ip, &settle, client_order_id);
+                    true
+                }
+                Some(_) => fail("E_BAD_OP"),
+                None => false,
+            };
             // v1.5: a Shards sell settles in two steps (credit -> payout to self -> settle)
             let (method, args, g) = match shards_sell {
                 Some(t) => (
@@ -983,16 +1300,28 @@ impl TradingAccount {
                     format!("{{\"token\":\"{}\",\"settle\":{}}}", t, jstr(&settle)),
                     GAS_SHARDS_SOLD_CB,
                 ),
-                None => ("on_swap_settled", settle, GAS_CALLBACK),
+                // v1.6: payable curve buys / direct curve sells settle on measured deltas
+                None => {
+                    match (curve.as_ref().filter(|p| p.settle.measured()), tax_gate.as_ref(), gated.as_ref())
+                    {
+                        (Some(p), _, _) => {
+                            venues::settle::callback(p.settle, &settle, liquid_balance(), p.fee_cap)
+                        }
+                        (None, Some(gt), Some(call)) => venues::tax::callback(gt, call, &settle),
+                        _ => ("on_swap_settled", settle, GAS_CALLBACK),
+                    }
+                }
             };
-            env::promise_then(
-                idx,
-                me,
-                method,
-                args.as_bytes(),
-                NearToken::from_yoctonear(0),
-                Gas::from_tgas(g),
-            );
+            if !routed {
+                env::promise_then(
+                    last_idx.unwrap_or_else(|| fail("E_BAD_OP")),
+                    me,
+                    method,
+                    args.as_bytes(),
+                    NearToken::from_yoctonear(0),
+                    Gas::from_tgas(g),
+                );
+            }
         }
         // 8 (`fee` = maximum; charged in on_swap_settled only if the swap used its input)
         env::log_str(&format!(
@@ -1220,12 +1549,20 @@ impl TradingAccount {
         if token.as_ref() == Some(&env::current_account_id()) {
             fail("E_BAD_OP");
         }
+        // R2-05: a token held by an in-flight route / Nearrr buy can't leave meanwhile
+        if let Some(t) = &token {
+            chain::assert_free(t.as_str());
+        }
         self.sync_caps();
         let now = env::block_timestamp();
         // v1.2.1: its gas counts toward the daily cap too (token may be any contract).
         roll_day(&mut self.day, now);
+        // v1.6: a signer-kind owner's home is its intents.near balance (spec §5.1)
+        let home = self.home_is_intents();
         // v1.3.2: token path = (register +) transfer/unwrap + report callback
-        let g = if token.is_some() {
+        let g = if home {
+            self.home_gas(&token)
+        } else if token.is_some() {
             GAS_FT_STORAGE + GAS_FT_SEND + GAS_WITHDRAW_CB + 3 * GAS_PER_ACTION
         } else {
             GAS_PER_ACTION
@@ -1240,7 +1577,11 @@ impl TradingAccount {
         } else {
             self.charge_gas(g * TGAS);
         }
-        self.send(token, amount.0, self.owner.clone(), true);
+        if home {
+            self.send_home(token, amount.0);
+        } else {
+            self.send(token, amount.0, self.owner.clone(), true);
+        }
     }
 
     /// v1.3 (device): register a 24/7 order. Nothing moves and nothing is spent now; the
@@ -1257,6 +1598,11 @@ impl TradingAccount {
         dexes: Vec<AccountId>,
     ) -> U64 {
         self.assert_device();
+        // v1.6: optional `via` (a Chain order's legs) read from the same JSON args, so the Rust
+        // signature and every pre-1.6 caller stay unchanged
+        let via = chain::via_from_input();
+        // AUDIT-T0: optional `max_out` (a token0 buy's exact-out size), same JSON args
+        let max_out = venues::order_terms::max_out_from_input();
         let now = env::block_timestamp();
         // v1.4.3 (SC-2, invariant 10): its gas counts toward the daily cap
         self.charge_device_gas(false);
@@ -1269,12 +1615,23 @@ impl TradingAccount {
             || trigger_meta.len() > MAX_TRIGGER_META
             || dexes.is_empty()
             || dexes.len() > MAX_ORDER_DEXES
+            || max_out.is_some_and(|m| m.0 < min_out.0)
         {
             fail("E_BAD_ORDER");
         }
-        // v1.5: a Shards order names the token itself as its venue
-        if dexes.iter().any(|d| self.dex_kind(d).is_none() && !self.is_shards_token(d)) {
+        // v1.5: a Shards order names the token itself as its venue. v1.6: so does a TokenCurve
+        // order; a curve venue that is never an order DEX (meme.cooking presale) is refused.
+        if dexes.iter().any(|d| match venues::order_venue(&self.dex_allowlist, d) {
+            Some(orderable) => !orderable,
+            None => self.dex_kind(d).is_none() && !self.is_shards_token(d),
+        }) {
             fail("E_BAD_DEX");
+        }
+        // v1.6 (routing C.1): a Chain order's legs (floor = min_out on the final token)
+        if let Some(v) = &via {
+            ok(chain::check_via(v, &token_in, &token_out, &dexes, &me));
+            // V16-10: no Chain-order leg on a callback-chain venue (Kelytra, Nearrr)
+            ok(chain::check_via_venues(v, &self.dex_allowlist));
         }
         if now >= expires_at_ns.0 {
             fail("E_EXPIRED");
@@ -1286,6 +1643,10 @@ impl TradingAccount {
         let mut index = order_index();
         for (id, _) in index.iter().filter(|(_, e)| *e < now) {
             env::storage_remove(&order_key(*id));
+            // a pruned Chain order's stored legs go with it (as remove_order)
+            chain::remove_via(*id);
+            // INDEP-3: and its stored max_out (AUDIT-T0)
+            venues::order_terms::remove(*id);
         }
         index.retain(|(_, e)| *e >= now);
         if index.len() >= MAX_OPEN_ORDERS {
@@ -1295,6 +1656,12 @@ impl TradingAccount {
         env::storage_write(K_ORDER_NEXT, &(id + 1).to_le_bytes());
         index.push((id, expires_at_ns.0));
         set_order_index(&index);
+        if let Some(v) = &via {
+            chain::save_via(id, v);
+        }
+        if let Some(m) = max_out {
+            venues::order_terms::save(id, m);
+        }
         save_order(
             id,
             &Order {
@@ -1355,6 +1722,14 @@ impl TradingAccount {
     #[payable]
     pub fn owner_add_key(&mut self, public_key: PublicKey, kind: KeyKind) {
         self.assert_owner();
+        self.add_key(public_key, kind);
+    }
+}
+
+// v1.6: owner action bodies shared by the predecessor door (`owner_*`, assert_owner) and the
+// signed door (`owner_signed`). Moved verbatim; no body reads predecessor or deposit.
+impl TradingAccount {
+    pub(crate) fn add_key(&mut self, public_key: PublicKey, kind: KeyKind) {
         let me = env::current_account_id();
         let p = Promise::new(me.clone());
         match kind {
@@ -1398,7 +1773,10 @@ impl TradingAccount {
         }
         .detach();
     }
+}
 
+#[near]
+impl TradingAccount {
     /// v1.4.1 (B1-L1): AddKey failed = the key already exists -> replace it in one batch so it
     /// gets the current DEVICE_METHODS; `on_key_replaced` reports the outcome.
     #[private]
@@ -1427,6 +1805,17 @@ impl TradingAccount {
         key_event(&jstr(&String::from(&public_key)), true, near_sdk::is_promise_success());
     }
 
+    /// v1.6: `device_key_removed{public_key, ok}` after a device key's DeleteKey (ok: false = the
+    /// key did not exist).
+    #[private]
+    pub fn on_key_removed(&mut self, public_key: PublicKey) {
+        let ok = near_sdk::is_promise_success();
+        env::log_str(&format!(
+            "EVENT_JSON:{{\"standard\":\"nttrade\",\"version\":\"1\",\"event\":\"device_key_removed\",\"data\":{{\"public_key\":{},\"ok\":{ok}}}}}",
+            jstr(&String::from(&public_key))
+        ));
+    }
+
     /// Note: a gas key's remaining balance is burnt by DeleteKey; near-sdk 5.29 has no
     /// WithdrawFromGasKey action, so the owner should drain it first (see README).
     /// v1.2: unregister from a DCL-kind DEX; DCL refunds the locked storage to the sponsor,
@@ -1434,6 +1823,10 @@ impl TradingAccount {
     #[payable]
     pub fn owner_reclaim_dex_storage(&mut self, dex: AccountId) {
         self.assert_owner();
+        self.reclaim_dex_storage(dex);
+    }
+
+    pub(crate) fn reclaim_dex_storage(&mut self, dex: AccountId) {
         self.assert_dcl(&dex);
         Promise::new(dex)
             .function_call(
@@ -1451,6 +1844,10 @@ impl TradingAccount {
     #[payable]
     pub fn owner_set_automation_key(&mut self, public_key: PublicKey, allowance: U128) {
         self.assert_owner();
+        self.set_automation_key(public_key, allowance);
+    }
+
+    pub(crate) fn set_automation_key(&mut self, public_key: PublicKey, allowance: U128) {
         if allowance.0 < MIN_AUTOMATION_ALLOWANCE {
             fail("E_ALLOWANCE");
         }
@@ -1503,6 +1900,10 @@ impl TradingAccount {
     #[payable]
     pub fn owner_remove_key(&mut self, public_key: PublicKey) {
         self.assert_owner();
+        self.remove_key(public_key);
+    }
+
+    pub(crate) fn remove_key(&mut self, public_key: PublicKey) {
         // a relayer key: same path as revoke (stays a relayer until deletion is confirmed).
         // v1.4.3 (PROMISEORDER-001): the automation key goes through clear_automation, which puts
         // it in the role set (materializing a legacy <= v1.4.1 set) BEFORE `ak` is removed.
@@ -1515,7 +1916,18 @@ impl TradingAccount {
         if relayer_keys().contains(&public_key) {
             fail("E_AUTOMATION_BUSY");
         }
-        Promise::new(env::current_account_id()).delete_key(public_key).detach();
+        // device_key_removed{public_key, ok}, reported by on_key_removed (as device_key_added)
+        let me = env::current_account_id();
+        Promise::new(me.clone())
+            .delete_key(public_key.clone())
+            .then(Promise::new(me).function_call_weight(
+                "on_key_removed",
+                format!("{{\"public_key\":{}}}", jstr(&String::from(&public_key))).into_bytes(),
+                NearToken::from_yoctonear(0),
+                Gas::from_tgas(GAS_KEY_CB),
+                GasWeight(1),
+            ))
+            .detach();
     }
 
     /// v1.4.4 (SC-8): drops a role-set entry that is not the current automation key and not an
@@ -1527,6 +1939,10 @@ impl TradingAccount {
     #[payable]
     pub fn owner_clear_relayer_key(&mut self, public_key: PublicKey) {
         self.assert_owner();
+        self.clear_relayer_key(public_key);
+    }
+
+    pub(crate) fn clear_relayer_key(&mut self, public_key: PublicKey) {
         if !relayer_keys().contains(&public_key) {
             fail("E_NO_KEY");
         }
@@ -1594,6 +2010,10 @@ impl TradingAccount {
     #[payable]
     pub fn owner_withdraw_all(&mut self, to: AccountId, tokens: Vec<AccountId>) {
         self.assert_owner();
+        self.withdraw_all(to, tokens);
+    }
+
+    pub(crate) fn withdraw_all(&mut self, to: AccountId, tokens: Vec<AccountId>) {
         let me = env::current_account_id();
         let mut list: Vec<AccountId> = Vec::new();
         for t in tokens {
@@ -1607,6 +2027,8 @@ impl TradingAccount {
         if list.len() > MAX_WITHDRAW_TOKENS {
             fail("E_TOO_MANY_TOKENS");
         }
+        // R2-05 (owner doors): refused as a whole while any token it would move is locked
+        assert_tokens_free(&self.wrap, &list);
         let q = |c: &AccountId, m: &str, who: &AccountId| {
             env::promise_create(
                 c.clone(),
@@ -1638,6 +2060,9 @@ impl TradingAccount {
 
     #[private]
     pub fn on_withdraw_all_balances(&mut self, to: AccountId, tokens: Vec<AccountId>) {
+        // R2-05: again here, since a lock can be taken between phase 1 and this callback; the
+        // whole call is refused (nothing has moved yet: phase 1 only read balances)
+        assert_tokens_free(&self.wrap, &tokens);
         let me = env::current_account_id();
         let n = tokens.len() as u64;
         // v1.4.3 (RESDISC-001): an unreadable balance (failed read, > 64 bytes, not a U128) is
@@ -1662,7 +2087,9 @@ impl TradingAccount {
         // v1.4.8 (UNR-A-03): every deposit below is paid from the native liquid balance NOW (the
         // unwrap lands later). Spend within it, cheapest items first (1 yocto each, then the
         // registrations), and report what doesn't fit instead of reverting the whole receipt.
-        let mut budget = liquid_balance();
+        // F1 / INDEP-1: expired routes settle first (their fee leaves before the read)
+        chain::expire_routes(&self.fee.fee_recipient);
+        let mut budget = liquid_balance().saturating_sub(self.owner_hold());
         let mut keep: u128 = 0;
         let w = bal(0, &self.wrap);
         if w > 0 && budget >= 1 {
@@ -1733,7 +2160,11 @@ impl TradingAccount {
         }
         // native last: everything above the storage stake (incl. the unwrapped wNEAR), minus what
         // the skipped items need for a second call (v1.4.8, UNR-A-03)
-        let native = liquid_balance().saturating_sub(keep.map_or(0, |k| k.0));
+        // v1.6: minus escrowed route fees and the signed-path state reserve (owner_hold)
+        // F1 / INDEP-1: expired routes settle first (their fee leaves before the read)
+        chain::expire_routes(&self.fee.fee_recipient);
+        let native =
+            liquid_balance().saturating_sub(keep.map_or(0, |k| k.0)).saturating_sub(self.owner_hold());
         if native > 0 {
             Promise::new(to.clone()).transfer(NearToken::from_yoctonear(native)).detach();
         }
@@ -1759,6 +2190,10 @@ impl TradingAccount {
     #[payable]
     pub fn owner_set_caps(&mut self, caps: Caps) {
         self.assert_owner();
+        self.set_caps(caps);
+    }
+
+    pub(crate) fn set_caps(&mut self, caps: Caps) {
         self.sync_caps();
         let cur = self.caps.clone();
         let now_caps = Caps {
@@ -1791,10 +2226,27 @@ impl TradingAccount {
     #[payable]
     pub fn owner_upgrade(&mut self, code_hash: Base58CryptoHash) {
         self.assert_owner();
+        // v1.6 (R2-09): never under an in-flight settle, route or pending order fire
+        upgrade::assert_not_in_flight();
+        self.upgrade(code_hash);
+    }
+
+    pub(crate) fn upgrade(&mut self, code_hash: Base58CryptoHash) {
         let me = env::current_account_id();
+        // v1.6 (R2-12): the state version is unknown until the new code's migrate writes it (older
+        // code never does, so a downgrade leaves no stale `sv`)
+        env::storage_remove(upgrade::K_STATE_VERSION);
+        // v1.6 (F-02): migrate gets all remaining gas (a future migration is not bounded by this
+        // code's guess), at least GAS_MIGRATE
         Promise::new(me)
             .use_global_contract(code_hash)
-            .function_call("migrate", vec![], NearToken::from_yoctonear(0), Gas::from_tgas(GAS_MIGRATE))
+            .function_call_weight(
+                "migrate",
+                vec![],
+                NearToken::from_yoctonear(0),
+                Gas::from_tgas(GAS_MIGRATE),
+                GasWeight(1),
+            )
             .detach();
     }
 
@@ -1811,6 +2263,16 @@ impl TradingAccount {
         recipient_type: String,
     ) -> u32 {
         self.assert_owner();
+        self.add_withdraw_destination(label, asset, recipient, recipient_type)
+    }
+
+    pub(crate) fn add_withdraw_destination(
+        &mut self,
+        label: String,
+        asset: String,
+        recipient: String,
+        recipient_type: String,
+    ) -> u32 {
         let active_at = env::block_timestamp().saturating_add(intents::DEST_DELAY_NS);
         let dest = Dest { label, asset, recipient, recipient_type, active_at_ns: U64(active_at) };
         ok(intents::check_dest(&dest));
@@ -1859,6 +2321,16 @@ impl TradingAccount {
         max_loss_bps: Option<u16>,
     ) {
         self.assert_owner();
+        self.set_oneclick_config(keys, max_slippage_bps, intents, max_loss_bps);
+    }
+
+    pub(crate) fn set_oneclick_config(
+        &mut self,
+        keys: Vec<String>,
+        max_slippage_bps: u16,
+        intents: Option<AccountId>,
+        max_loss_bps: Option<u16>,
+    ) {
         let intents =
             intents.unwrap_or_else(|| intents::DEFAULT_INTENTS.parse().unwrap_or_else(|_| fail("E_STATE")));
         let max_loss_bps = max_loss_bps.unwrap_or(intents::DEFAULT_MAX_LOSS_BPS);
@@ -1884,6 +2356,10 @@ impl TradingAccount {
     #[payable]
     pub fn owner_set_withdraw_cap(&mut self, daily_cap_yocto: Option<U128>, daily_cap_usd: Option<U128>) {
         self.assert_owner();
+        self.set_withdraw_cap(daily_cap_yocto, daily_cap_usd);
+    }
+
+    pub(crate) fn set_withdraw_cap(&mut self, daily_cap_yocto: Option<U128>, daily_cap_usd: Option<U128>) {
         // v1.4.5: `withdraw_cap_set{old_*, new_*}`. v1.4.6 (RA5-7): null = never set, for both caps
         // (the yocto cap then follows the trading daily cap; the USD cap is none, v1.4.7)
         let q = |v: Option<u128>| v.map_or("null".to_string(), |x| format!("\"{x}\""));
@@ -1909,11 +2385,36 @@ impl TradingAccount {
     #[payable]
     pub fn owner_withdraw_from_intents(&mut self, token: AccountId, amount: U128) {
         self.assert_owner();
-        self.intents_to_self(token, amount.0);
+        self.owner_intents_to_self(token, amount.0);
+    }
+
+    /// Owner doors (predecessor and signed): like the device, refused (E_Q_BUSY) for a token a
+    /// live route reserves, so the owner can't be led to pull a route's delivery and have its
+    /// refund check misread it (escrow released, spend returned). Once the route is stuck
+    /// (ROUTE_PENDING_TTL_BLOCKS after a fire whose callback never ran) or expired (F1), it
+    /// reserves nothing and the owner recovers freely.
+    pub(crate) fn owner_intents_to_self(&mut self, token: AccountId, amount: u128) {
+        chain::expire_routes(&self.fee.fee_recipient);
+        if chain::intents_token_reserved(&token, &self.wrap) {
+            fail("E_Q_BUSY");
+        }
+        self.intents_to_self(token, amount);
+    }
+
+    /// The tokens of this account's intents balance that live routes reserve now: the device's
+    /// and the owner's `withdraw_from_intents` and rescue refuse exactly these (E_Q_BUSY).
+    pub fn get_intents_reserved(&self) -> Vec<AccountId> {
+        chain::intents_reserved_tokens(&self.wrap)
     }
 
     pub fn withdraw_from_intents(&mut self, token: AccountId, amount: U128) {
         self.assert_device();
+        // F1: expired routes are closed first (they reserve nothing)
+        chain::expire_routes(&self.fee.fee_recipient);
+        // V16-07: a Funded intents route's tokens are its own (pulled by its continuation)
+        if chain::intents_token_reserved(&token, &self.wrap) {
+            fail("E_Q_BUSY");
+        }
         self.sync_caps();
         // its gas counts toward the withdraw window (gas-burn bound, A1-F1)
         let now = env::block_timestamp();
@@ -1934,6 +2435,12 @@ impl TradingAccount {
     #[payable]
     pub fn owner_withdraw_via_intents(&mut self, token: AccountId, amount: U128, deposit_address: String) {
         self.assert_owner();
+        self.withdraw_via_intents(token, amount, deposit_address);
+    }
+
+    pub(crate) fn withdraw_via_intents(&mut self, token: AccountId, amount: U128, deposit_address: String) {
+        // R2-05 (owner doors): checked first, before the deposit address is marked
+        chain::assert_free(token.as_str());
         if !intents::is_deposit_address(&deposit_address) {
             fail("E_BAD_DEPOSIT_ADDRESS");
         }
@@ -1958,18 +2465,24 @@ impl TradingAccount {
     ) {
         // 1
         self.assert_device();
+        // R2-05: a token held by an in-flight route / Nearrr buy can't leave meanwhile
+        chain::assert_free(token.as_str());
         self.sync_caps();
         let now = env::block_timestamp();
         ok(check_expiry(now, expires_at_ns.0));
         ok(self.seen_orders.insert(client_order_id.clone(), expires_at_ns.0, now));
         let cfg = intents::oneclick().unwrap_or_else(|| fail("E_ONECLICK_UNSET"));
-        // 2
-        let dest = intents::dests()
-            .list
-            .into_iter()
-            .find(|(i, d)| *i == dest_id && now >= d.active_at_ns.0)
-            .map(|(_, d)| d)
-            .unwrap_or_else(|| fail("E_DEST_INACTIVE"));
+        // 2 (v1.6: HOME_DEST = the owner's own home, derived, no delay: spec §5.2)
+        let dest = if dest_id == owner::HOME_DEST {
+            self.home_dest(&signed_quote)
+        } else {
+            intents::dests()
+                .list
+                .into_iter()
+                .find(|(i, d)| *i == dest_id && now >= d.active_at_ns.0)
+                .map(|(_, d)| d)
+                .unwrap_or_else(|| fail("E_DEST_INACTIVE"))
+        };
         let me = env::current_account_id();
         if token == me || amount.0 == 0 {
             fail("E_BAD_OP");
@@ -2150,6 +2663,10 @@ impl TradingAccount {
     #[payable]
     pub fn owner_set_relayer_allowance(&mut self, weekly_yocto: U128) {
         self.assert_owner();
+        self.set_relayer_allowance(weekly_yocto);
+    }
+
+    pub(crate) fn set_relayer_allowance(&mut self, weekly_yocto: U128) {
         let old = relayer_allowance();
         if weekly_yocto.0 == UNLIMITED {
             env::storage_remove(K_RELAYER_ALLOWANCE);
@@ -2169,7 +2686,9 @@ impl TradingAccount {
     pub fn get_orders(&self) -> Vec<OrderView> {
         order_index()
             .into_iter()
-            .filter_map(|(id, _)| load_order(id).map(|order| OrderView { id: U64(id), order }))
+            .filter_map(|(id, _)| {
+                load_order(id).map(|order| OrderView { id: U64(id), order, via: chain::load_via(id) })
+            })
             .collect()
     }
 
@@ -2287,8 +2806,20 @@ impl TradingAccount {
 
     /// Exact-id venues (Rhea classic / DCL / Plach). v1.5: a ShardsToken entry names a factory,
     /// not a venue, so it never matches here (no ft_transfer_call, storage or order DEX = factory).
+    /// v1.6: routing validation context.
+    fn route_env<'a>(&'a self, me: &'a AccountId, now: u64) -> chain::Env<'a> {
+        chain::Env {
+            me,
+            wrap: &self.wrap,
+            allow: &self.dex_allowlist,
+            referrer: &self.fee.fee_recipient,
+            fee_bps: self.fee.fee_bps,
+            now_ns: now,
+        }
+    }
+
     fn dex_kind(&self, id: &AccountId) -> Option<DexKind> {
-        self.dex_allowlist.iter().find(|d| &d.id == id && d.kind != DexKind::ShardsToken).map(|d| d.kind)
+        self.dex_allowlist.iter().find(|d| &d.id == id && !venues::is_factory_entry(d.kind)).map(|d| d.kind)
     }
 
     /// v1.5: `token` is a Shards token under an allowlisted ShardsToken factory.
@@ -2322,6 +2853,12 @@ impl TradingAccount {
         }
         if env::attached_deposit() != NearToken::from_yoctonear(1) {
             fail("E_ONE_YOCTO");
+        }
+        // v1.6 (V16-03): "my original key leaked" closes the predecessor door too: that key also
+        // controls the owner-id NEAR account. Only a signer-kind owner with an auth key can turn
+        // it off (a named owner always passes); the owner then acts through its auth keys.
+        if !owner::owner_auth(&self.owner).implicit_enabled {
+            fail("E_IMPLICIT_OFF");
         }
     }
 
@@ -2391,9 +2928,17 @@ impl TradingAccount {
     fn send(&self, token: Option<AccountId>, amount: u128, to: AccountId, keep_reserve: bool) {
         match token {
             None => {
+                // F1 / INDEP-1: expired routes settle first (their fee leaves before the read)
+                chain::expire_routes(&self.fee.fee_recipient);
+                // v1.6: escrowed route fees and the signed-path state reserve are never sent
+                let free = liquid_balance().saturating_sub(self.owner_hold());
                 if keep_reserve {
-                    ok(check_reserve(liquid_balance(), amount));
+                    ok(check_reserve(free, amount));
+                } else if amount > free && self.owner_hold() > 0 {
+                    fail("E_HELD_BALANCE");
                 }
+                // every native owner outflow is reported, as the token and withdraw_all paths are
+                withdraw_event("near", amount, &to, true);
                 Promise::new(to).transfer(NearToken::from_yoctonear(amount)).detach();
             }
             Some(t) => {
@@ -2401,6 +2946,9 @@ impl TradingAccount {
                 if t == me {
                     fail("E_BAD_OP");
                 }
+                // R2-05: every door that sends a token here (owner_withdraw, withdraw_home, rescue,
+                // withdraw_to_owner) is refused while the token is locked
+                chain::assert_free(t.as_str());
                 // v1.3.2: wNEAR is unwrapped and sent as NEAR (destinations are often not
                 // registered on wrap); other tokens: register `to` (registration_only; excess
                 // refunded to us) then ft_transfer. Result reported as an `owner_withdraw` event.
@@ -2463,6 +3011,18 @@ const K_INSTALLING: &[u8] = b"ai";
 /// v1.4.5: caps in force when the pending raise was requested.
 const K_PENDING_BASE: &[u8] = b"cb";
 
+/// R2-05 (owner doors): E_Q_BUSY while wNEAR or any listed token is locked (`chain::assert_free`:
+/// a Nearrr buy's output token until its settle, or a route's Q). A locked token can't leave
+/// through an owner withdraw, or the owner could empty it mid-settle and make a fill read as the
+/// pad's refund (fee 0). Every lock expires after `chain::LOCK_TTL_BLOCKS` (300 blocks), so owner
+/// recovery waits seconds normally and at most ~5 minutes; other tokens and NEAR are unaffected.
+fn assert_tokens_free(wrap: &AccountId, tokens: &[AccountId]) {
+    chain::assert_free(wrap.as_str());
+    for t in tokens {
+        chain::assert_free(t.as_str());
+    }
+}
+
 fn save_pending_caps(p: &PendingCaps) {
     env::storage_write(K_PENDING_CAPS, &near_sdk::borsh::to_vec(p).unwrap_or_else(|_| fail("E_STATE")));
 }
@@ -2523,15 +3083,43 @@ enum SwapProof {
     PlachNear,
     /// v1.5: Shards `sell_exact_in` (refund = failed receipt only; settled via on_shards_sold)
     ShardsSell,
+    /// v1.6: payable curve buy (refund = failed receipt; fee on the measured refund)
+    CurveNear,
+    /// v1.6: direct curve sell (refund = failed receipt; fee on the measured payout)
+    CurveOut,
 }
 
 impl SwapProof {
+    /// v1.6: a Chain's leg-1 proof (routing: a failed leg 1 is a normal failed swap).
+    fn of_leg(p: &str) -> Self {
+        match p {
+            "wrap" => SwapProof::Wrap,
+            "token" => SwapProof::Token,
+            "plach_near" => SwapProof::PlachNear,
+            "curve_near" => SwapProof::CurveNear,
+            _ => SwapProof::CurveOut,
+        }
+    }
+
+    /// v1.6: a curve plan's settle kind (Wrap / Token keep today's on_swap_settled rules).
+    fn from_curve(s: venues::Settle) -> Self {
+        match s {
+            venues::Settle::Wrap => SwapProof::Wrap,
+            venues::Settle::Token => SwapProof::Token,
+            venues::Settle::NearIn => SwapProof::CurveNear,
+            // Out and any later measured kind (refund = failed receipt only)
+            _ => SwapProof::CurveOut,
+        }
+    }
+
     fn as_str(self) -> &'static str {
         match self {
             SwapProof::Wrap => "wrap",
             SwapProof::Token => "token",
             SwapProof::PlachNear => "plach_near",
             SwapProof::ShardsSell => "shards_sell",
+            SwapProof::CurveNear => "curve_near",
+            SwapProof::CurveOut => "curve_out",
         }
     }
 }
@@ -2943,6 +3531,8 @@ fn save_order(id: u64, o: &Order) {
 
 fn remove_order(id: u64) {
     env::storage_remove(&order_key(id));
+    chain::remove_via(id);
+    venues::order_terms::remove(id);
     let mut index = order_index();
     index.retain(|(i, _)| *i != id);
     set_order_index(&index);
@@ -2959,6 +3549,10 @@ fn check_order_op(o: &Order, op: &Op, wrap: &AccountId) -> Result<(), &'static s
     match op {
         Op::FtTransferCall { .. } | Op::PlachDepositNear { .. } => Ok(()),
         Op::ShardsBuy { .. } | Op::ShardsSell { .. } => Ok(()),
+        // v1.6: checked against the order by check_order_swap in run (never a CurveClaim)
+        Op::CurveBuy(_) | Op::CurveSell(_) => Ok(()),
+        // v1.6: checked against the stored legs (check_chain_order); never an IntentsSwap
+        Op::Chain(_) => Ok(()),
         Op::StorageDeposit { .. } | Op::PlachRegisterAssets { .. } => Ok(()),
         Op::NearDeposit { amount } if &o.token_in == wrap && amount.0 <= o.amount_in.0 => Ok(()),
         _ => Err("E_ORDER_OPS"),
@@ -3007,4 +3601,78 @@ fn day_gas(start_ns: u64) -> u128 {
         }
         _ => 0,
     }
+}
+
+// ---------------- v1.6: balances an owner withdraw never sends ----------------
+
+/// Storage the signed path may still need after the account is emptied: the used-nonce store at
+/// its cap (32 x 40 B) + the `ow` record with 4 auth keys + trie overhead. Kept liquid for an
+/// owner with signatures on, so the next signed call never needs a top-up.
+pub const SIGNED_STATE_BYTES: u128 = 2_048;
+
+impl TradingAccount {
+    /// Liquid NEAR an owner withdraw leaves in place: escrowed route fees (routing C.2.2) plus,
+    /// with owner signatures on, the signed-path state reserve. 0 for a NEAR-wallet owner with
+    /// no route in flight (1.5 behaviour).
+    /// Pure (INDEP-1): every door that reads it sweeps expired routes (`expire_routes`) BEFORE
+    /// reading `liquid_balance()`, so the paid escrow is neither held nor counted as liquid.
+    pub(crate) fn owner_hold(&self) -> u128 {
+        let signed = if owner::owner_auth(&self.owner).signed_enabled {
+            SIGNED_STATE_BYTES.saturating_mul(env::storage_byte_cost().as_yoctonear())
+        } else {
+            0
+        };
+        chain::escrow_total().saturating_add(signed)
+    }
+
+    /// v1.6: a refunded IntentsSwap returns its counted spend to the daily window it was charged
+    /// in: the escrowed fee, and the input pro rata to what came back (`returned`, capped).
+    /// Funding failed (nothing left the account): the input came back through `finish_settle`,
+    /// so only the escrowed fee's spend is released here.
+    pub(crate) fn release_route_fee(&mut self, rid: &str) {
+        let k = [K_ROUTE_SPEND, rid.as_bytes()].concat();
+        if let Some((day_start, _, fee)) =
+            env::storage_read(&k).and_then(|b| near_sdk::borsh::from_slice::<(u64, u128, u128)>(&b).ok())
+        {
+            env::storage_remove(&k);
+            if self.day.start_ns == day_start {
+                self.day.spent_yocto = self.day.spent_yocto.saturating_sub(fee);
+            }
+        }
+    }
+
+    pub(crate) fn release_route_spend(&mut self, rid: &str, returned: u128) {
+        let k = [K_ROUTE_SPEND, rid.as_bytes()].concat();
+        let Some((day_start, amount, fee)) =
+            env::storage_read(&k).and_then(|b| near_sdk::borsh::from_slice::<(u64, u128, u128)>(&b).ok())
+        else {
+            return;
+        };
+        env::storage_remove(&k);
+        // V16-07: input AND escrowed fee pro rata to what came back (the rest was traded and paid)
+        let back = mul_div(amount.saturating_add(fee), returned.min(amount), amount.max(1));
+        if self.day.start_ns == day_start {
+            self.day.spent_yocto = self.day.spent_yocto.saturating_sub(back);
+        }
+        env::log_str(&format!(
+            "EVENT_JSON:{{\"standard\":\"nttrade\",\"version\":\"1\",\"event\":\"route_spend_released\",\"data\":{{\"id\":{},\"amount\":\"{back}\"}}}}",
+            jstr(rid)
+        ));
+    }
+}
+
+/// `rs` + route id: (day start, counted input, escrowed fee) of an IntentsSwap.
+const K_ROUTE_SPEND: &[u8] = b"rs";
+
+fn save_route_spend(rid: &str, day_start: u64, amount: u128, fee: u128) {
+    let k = [K_ROUTE_SPEND, rid.as_bytes()].concat();
+    env::storage_write(
+        &k,
+        &near_sdk::borsh::to_vec(&(day_start, amount, fee)).unwrap_or_else(|_| fail("E_STATE")),
+    );
+}
+
+/// The route's spend record once its delivery is proven (nothing to release).
+pub(crate) fn drop_route_spend(rid: &str) {
+    env::storage_remove(&[K_ROUTE_SPEND, rid.as_bytes()].concat());
 }

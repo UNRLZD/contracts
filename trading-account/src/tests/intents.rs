@@ -44,11 +44,11 @@ fn obj(s: &str) -> Map<String, Value> {
 }
 
 /// Test signing key (stands in for 1Click in the contract-flow tests).
-fn test_sk() -> SigningKey {
+pub(super) fn test_sk() -> SigningKey {
     SigningKey::from_bytes(&[7u8; 32])
 }
 
-fn pk_str(sk: &SigningKey) -> String {
+pub(super) fn pk_str(sk: &SigningKey) -> String {
     format!("ed25519:{}", near_sdk::bs58::encode(sk.verifying_key().to_bytes()).into_string())
 }
 
@@ -531,7 +531,7 @@ fn intents_account() -> TradingAccount {
     c
 }
 
-fn signed(amount: u128, now: u64, f: impl Fn(&mut Map<String, Value>)) -> (String, String) {
+pub(super) fn signed(amount: u128, now: u64, f: impl Fn(&mut Map<String, Value>)) -> (String, String) {
     let mut m = synthetic(amount, now + 3_600 * NS_PER_SEC);
     f(&mut m);
     let s = stable(&Value::Object(m));
@@ -539,7 +539,14 @@ fn signed(amount: u128, now: u64, f: impl Fn(&mut Map<String, Value>)) -> (Strin
     (s, sig)
 }
 
-fn wcc(c: &mut TradingAccount, id: &str, dest: u32, token: &str, amount: u128, q: &(String, String)) {
+pub(super) fn wcc(
+    c: &mut TradingAccount,
+    id: &str,
+    dest: u32,
+    token: &str,
+    amount: u128,
+    q: &(String, String),
+) {
     c.withdraw_cross_chain(
         dest,
         a(token),

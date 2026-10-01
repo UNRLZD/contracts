@@ -1,0 +1,1187 @@
+{
+  "note": "owner-payload golden vectors. Verify with ctx (ctx.nowMs = block time). expect = 'ok' or the TA error code (docs/owner-v16-spec.md §4.2). Keys: sha256('nt-owner-v16-spike/<label>'), never funded. Regenerate: pnpm -F @nt/owner-payload vectors",
+  "now_ms": 1790856000000,
+  "salt": "252812b3",
+  "ta": "0123456789abcdef.trade.unrlzd.near",
+  "vectors": [
+    {
+      "name": "raw_ed25519/rotate_salt",
+      "expect": "ok",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "hash": "dfe6f2cd40f403768801cbd7b2cf6caf2ed8a4c6fdd976b92ccb7229bd275ada",
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hiow0GHFc9TSOZYvVfkUp0=\",\"ops\":[{\"op\":\"rotate_salt\"}]}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:5uEKxXdK8BTWHhWLQYDBSgcaiTJKhy2zXH1vcJjP9U8rU2FNpZRm6nuYAnP8Fm5pEFEhy2DJkUM71NuXjRsNNMVA"
+      }
+    },
+    {
+      "name": "erc191/rotate_salt",
+      "expect": "ok",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "0x27bddf118feba46b116925778dfdbc4cbec42edb",
+        "ownerKind": "Secp256k1",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "hash": "d1fc33f27931f0b9a167fa3068f23f3de7a2417d1bc40ef10e659f01323d028a",
+      "signed": {
+        "standard": "erc191",
+        "payload": "{\"signer_id\":\"0x27bddf118feba46b116925778dfdbc4cbec42edb\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hj0Aqk21unyb0rdoHq+nz8=\",\"ops\":[{\"op\":\"rotate_salt\"}]}",
+        "signature": "secp256k1:JeC6ibWp43XWaKvWWegHZmj8pRj3WbTom1s6KNVRP8qyShnk2atx8B53Hnw2oTrReGi4WqXhFCreAMtwoqBACcGtG"
+      }
+    },
+    {
+      "name": "nep413/rotate_salt",
+      "expect": "ok",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "5192ef3a1ba181e20992e67d7e25886e824fd4718599974a5e7e2fe07543e27b",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "hash": "9d9999aa4b37be649dd5f55360f101786979189682180d8f2681cdc2897afcfb",
+      "signed": {
+        "standard": "nep413",
+        "payload": {
+          "message": "{\"signer_id\":\"5192ef3a1ba181e20992e67d7e25886e824fd4718599974a5e7e2fe07543e27b\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"ops\":[{\"op\":\"rotate_salt\"}]}",
+          "nonce": "Vij2xgAlKBKzADhFBVFm2hgg3YwkbdbEYA5tIPhp/DI=",
+          "recipient": "0123456789abcdef.trade.unrlzd.near"
+        },
+        "public_key": "ed25519:6VRySZzx2Tpnz9N27p7jpacvnMq7e8u1USRpLycpQ6uQ",
+        "signature": "ed25519:4kktmKN2PpfCcH3T1GXPs127R7eAd88jSvKi6DUNMmEJUiwiQsCd3UpmwT6AQB6kFLjMBSbbCHo5hGT8TP8gNsZk"
+      }
+    },
+    {
+      "name": "webauthn_p256/rotate_salt",
+      "expect": "ok",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "0x4a9758f737416fe54f7c68aa405e1fd9a01d1ec6",
+        "ownerKind": "P256",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "hash": "7787082232999b1566b32c65037b086f98033aefeeb2279fd2f292654917b5cd",
+      "signed": {
+        "standard": "webauthn",
+        "payload": "{\"signer_id\":\"0x4a9758f737416fe54f7c68aa405e1fd9a01d1ec6\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hiDg79BKhts5RQAPhe3Hf4=\",\"ops\":[{\"op\":\"rotate_salt\"}]}",
+        "public_key": "p256:3kxmXGHeQVWTaBfMfU7W3mmTw3CEAiWz2QyU78ucFVWezFCAiz9UBdikQzmjyigdekU777SHTSh2CXG6eTKNRcgs",
+        "signature": "p256:2rYV9oHEjNhPaqd7nLfKJtkfigNSPJzrNWNnv8fBMXNFxgxuqYPpAFFE6U3BfXsb6beztsi4emb4XMCuEoMuUcWT",
+        "client_data_json": "{\"type\":\"webauthn.get\",\"challenge\":\"d4cIIjKZmxVmsyxlA3sIb5gDOu_usief0vKSZUkXtc0\",\"origin\":\"https://signer.unrealized.trade\",\"crossOrigin\":false}",
+        "authenticator_data": "o17MkfZN0EppIChbQxCo7o_ez1yPUnsAIl_KkH4nLNMFAAAAAA"
+      }
+    },
+    {
+      "name": "webauthn_ed25519/rotate_salt",
+      "expect": "ok",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "84bab25f7c775dec235ccd37f456649eafd0e8c2ada3a5801e75f15349c561b3",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "hash": "b94b61c58a457f42f9827a69b33d0f09ba37a203026370b808ca0390fa59e32a",
+      "signed": {
+        "standard": "webauthn",
+        "payload": "{\"signer_id\":\"84bab25f7c775dec235ccd37f456649eafd0e8c2ada3a5801e75f15349c561b3\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hgZLdUDmDMYByW9emby4EM=\",\"ops\":[{\"op\":\"rotate_salt\"}]}",
+        "public_key": "ed25519:9w7w39kdcP3U89a86DQ42VxFRGpKk338sHvei1aKue5x",
+        "signature": "ed25519:2enXrunEk3cDcYjDX2K9F6KhVY6HJ1UxWRNmS6jTBs4hzcUesEgrtj4MtVBJ7fQGU268PrHxuonWv7szCMD3PPwj",
+        "client_data_json": "{\"type\":\"webauthn.get\",\"challenge\":\"uUthxYpFf0L5gnppsz0PCbo3ogMCY3C4CMoDkPpZ4yo\",\"origin\":\"https://signer.unrealized.trade\",\"crossOrigin\":false}",
+        "authenticator_data": "o17MkfZN0EppIChbQxCo7o_ez1yPUnsAIl_KkH4nLNMFAAAAAA"
+      }
+    },
+    {
+      "name": "erc191/4 ops",
+      "expect": "ok",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "0x27bddf118feba46b116925778dfdbc4cbec42edb",
+        "ownerKind": "Secp256k1",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "hash": "8dc24e0fb93cfb4d0f5b996eeafb4e540bf022b204bcc024ea2eea389d50954f",
+      "signed": {
+        "standard": "erc191",
+        "payload": "{\"signer_id\":\"0x27bddf118feba46b116925778dfdbc4cbec42edb\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hiIT/Z0yP4X67Kd35wBsA0=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1000000000000000000000000\",\"to\":\"alice.near\"},{\"op\":\"withdraw_home\",\"token\":\"wrap.near\",\"amount\":\"5\"},{\"op\":\"set_caps\",\"caps\":{\"max_trade_yocto\":\"10\",\"daily_cap_yocto\":\"20\"}},{\"op\":\"set_withdraw_cap\",\"daily_cap_usd\":\"1000000000\"}]}",
+        "signature": "secp256k1:FPjjV7WrBo7Ywqjahw3DJxPYWXvDFNX4fGcAuBsCbUzAFbdFDi9PapfPtHt3ftfY5kJPbDF1c5NeKJR9SUxxLPhPe"
+      }
+    },
+    {
+      "name": "nep413/withdraw_home",
+      "expect": "ok",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "5192ef3a1ba181e20992e67d7e25886e824fd4718599974a5e7e2fe07543e27b",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "hash": "12ae78270ea4c2ecb6ac2faaa642060e3acdc628176743fad543ff5bfde7ce01",
+      "signed": {
+        "standard": "nep413",
+        "payload": {
+          "message": "{\"signer_id\":\"5192ef3a1ba181e20992e67d7e25886e824fd4718599974a5e7e2fe07543e27b\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"ops\":[{\"op\":\"withdraw_home\",\"token\":null,\"amount\":\"1\"}]}",
+          "nonce": "Vij2xgAlKBKzADhFBVFm2hiYJDuPlVlRffj47dXG+WY=",
+          "recipient": "0123456789abcdef.trade.unrlzd.near"
+        },
+        "public_key": "ed25519:6VRySZzx2Tpnz9N27p7jpacvnMq7e8u1USRpLycpQ6uQ",
+        "signature": "ed25519:3iESzMKp7CV39SY2uqEtub6EA3dcxtJbdgVUP5UfvhyjE5J1fk8Wv6A3hGAuP9qmremjo5QbrJp1eXDRR5dkR9z9"
+      }
+    },
+    {
+      "name": "webauthn_p256/add_auth_key",
+      "expect": "ok",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "0x4a9758f737416fe54f7c68aa405e1fd9a01d1ec6",
+        "ownerKind": "P256",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "hash": "35754fc70a68e84435b6c5e2262fbd3a1ad0175e6670610c12935fb53568a846",
+      "signed": {
+        "standard": "webauthn",
+        "payload": "{\"signer_id\":\"0x4a9758f737416fe54f7c68aa405e1fd9a01d1ec6\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hjHuupNZ6ZypK+qAYOVhyY=\",\"ops\":[{\"op\":\"add_auth_key\",\"public_key\":\"p256:3uNZetX9XgKkdP9vBMmEHM1eadozuS2ZNrDxDr9KyYXRumgdtD6hRM74Sxj5J1mkXkRZr2xmy1SBB5MtHM9gxVX1\"}]}",
+        "public_key": "p256:3kxmXGHeQVWTaBfMfU7W3mmTw3CEAiWz2QyU78ucFVWezFCAiz9UBdikQzmjyigdekU777SHTSh2CXG6eTKNRcgs",
+        "signature": "p256:v91dEoBpX5LLSBq3GK1YT2oWhvBTRL8mwwMxaUHJhkqjyW7ch2CNtUxbftiksK9iUdLnJBQ6EqBGobMiDmCMcwC",
+        "client_data_json": "{\"type\":\"webauthn.get\",\"challenge\":\"NXVPxwpo6EQ1tsXiJi-9OhrQF15mcGEMEpNftTVoqEY\",\"origin\":\"https://signer.unrealized.trade\",\"crossOrigin\":false}",
+        "authenticator_data": "o17MkfZN0EppIChbQxCo7o_ez1yPUnsAIl_KkH4nLNMFAAAAAA"
+      }
+    },
+    {
+      "name": "raw_ed25519/upgrade",
+      "expect": "ok",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "hash": "d0892fe4dd9f18719a7942ef9797d950e5fde09a94203d79d4164a25f9ced6c5",
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hjhbfHFB5WOKTbUYPWSRmo=\",\"ops\":[{\"op\":\"upgrade\",\"code_hash\":\"11111111111111111111111111111111\"}]}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:6hjoZ9YLERo2jeuRAFboTZzuhD62uNSFkfNUKyrKMeTKy6jXji9RLKr8YckzybD4ZdS7fa7G78Bk2Em8RK8x6W1"
+      }
+    },
+    {
+      "name": "erc191/auto-upgrade on + cancel",
+      "expect": "ok",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "0x27bddf118feba46b116925778dfdbc4cbec42edb",
+        "ownerKind": "Secp256k1",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "hash": "bc252c70c2f3b344cc15b3272fe287ffff8689172d420fe52766083d6fddf727",
+      "signed": {
+        "standard": "erc191",
+        "payload": "{\"signer_id\":\"0x27bddf118feba46b116925778dfdbc4cbec42edb\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hgOsb1wJ6CJ4m8ep9p5QCc=\",\"ops\":[{\"op\":\"set_auto_upgrade\",\"enabled\":true},{\"op\":\"cancel_auto_upgrade\"}]}",
+        "signature": "secp256k1:NUthGoUYEdi8dFQEKgUu3LanuBoxBnbXnBakUNLLcQ3q7KghBKzFAP9p7N9masKC24EAcBXMPYhhqDcMuhW9DE85M"
+      }
+    },
+    {
+      "name": "webauthn_p256/rescue Ft + Mt + Nft",
+      "expect": "ok",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "0x4a9758f737416fe54f7c68aa405e1fd9a01d1ec6",
+        "ownerKind": "P256",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "hash": "68c71ac7c8708bd02bb6f5d90826f5bdd9d85e107c4273fce1b1685c21dbece3",
+      "signed": {
+        "standard": "webauthn",
+        "payload": "{\"signer_id\":\"0x4a9758f737416fe54f7c68aa405e1fd9a01d1ec6\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hhYiLzLshfgPTRIAu7fOUY=\",\"ops\":[{\"op\":\"rescue\",\"asset\":{\"Ft\":{\"contract\":\"stuck-token.near\",\"amount\":\"1000\"}}},{\"op\":\"rescue\",\"asset\":{\"Mt\":{\"contract\":\"v2_1.omni.hot.tg\",\"token_id\":\"56_11111111111111111111\",\"amount\":\"7\"}}},{\"op\":\"rescue\",\"asset\":{\"Nft\":{\"contract\":\"nft.stuck.near\",\"token_id\":\"42\"}}}]}",
+        "public_key": "p256:3kxmXGHeQVWTaBfMfU7W3mmTw3CEAiWz2QyU78ucFVWezFCAiz9UBdikQzmjyigdekU777SHTSh2CXG6eTKNRcgs",
+        "signature": "p256:4LGVr5XwvF77SJgzWYWsgd7J6nxsw7LS19jbnvDJzU5MwHGmoRq5BCVftHdh3Ex3bu3nDnntwU92F2Rtf6GW68E3",
+        "client_data_json": "{\"type\":\"webauthn.get\",\"challenge\":\"aMcax8hwi9ArtvXZCCb1vdnYXhB8QnP84bFoXCHb7OM\",\"origin\":\"https://signer.unrealized.trade\",\"crossOrigin\":false}",
+        "authenticator_data": "o17MkfZN0EppIChbQxCo7o_ez1yPUnsAIl_KkH4nLNMFAAAAAA"
+      }
+    },
+    {
+      "name": "webauthn_p256/auth key for Ed25519 owner",
+      "expect": "ok",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3",
+        "authKeys": [
+          "p256:3uNZetX9XgKkdP9vBMmEHM1eadozuS2ZNrDxDr9KyYXRumgdtD6hRM74Sxj5J1mkXkRZr2xmy1SBB5MtHM9gxVX1"
+        ]
+      },
+      "hash": "fd130520d37c44c088f113a6f1f38fa506a4c155f7b35e698dcc04a7745b1aef",
+      "signed": {
+        "standard": "webauthn",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hjoa/kciUEpoZnlMMLGjiI=\",\"ops\":[{\"op\":\"set_implicit_key\",\"enabled\":false}]}",
+        "public_key": "p256:3uNZetX9XgKkdP9vBMmEHM1eadozuS2ZNrDxDr9KyYXRumgdtD6hRM74Sxj5J1mkXkRZr2xmy1SBB5MtHM9gxVX1",
+        "signature": "p256:BKScvjYEVJLbbxnS2aiN5qCeMVzR82WGDdhwJEpnAejzivvJTW2QNXje4v43LdjUbSwGBTGvFGhoT7r8uerZ1qS",
+        "client_data_json": "{\"type\":\"webauthn.get\",\"challenge\":\"_RMFINN8RMCI8ROm8fOPpQakwVX3s15pjcwEp3RbGu8\",\"origin\":\"https://signer.unrealized.trade\",\"crossOrigin\":false}",
+        "authenticator_data": "o17MkfZN0EppIChbQxCo7o_ez1yPUnsAIl_KkH4nLNMFAAAAAA"
+      }
+    },
+    {
+      "name": "NEG same, implicit key path (not an auth key)",
+      "expect": "E_OWNER_KIND",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "webauthn",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hjoa/kciUEpoZnlMMLGjiI=\",\"ops\":[{\"op\":\"set_implicit_key\",\"enabled\":false}]}",
+        "public_key": "p256:3uNZetX9XgKkdP9vBMmEHM1eadozuS2ZNrDxDr9KyYXRumgdtD6hRM74Sxj5J1mkXkRZr2xmy1SBB5MtHM9gxVX1",
+        "signature": "p256:BKScvjYEVJLbbxnS2aiN5qCeMVzR82WGDdhwJEpnAejzivvJTW2QNXje4v43LdjUbSwGBTGvFGhoT7r8uerZ1qS",
+        "client_data_json": "{\"type\":\"webauthn.get\",\"challenge\":\"_RMFINN8RMCI8ROm8fOPpQakwVX3s15pjcwEp3RbGu8\",\"origin\":\"https://signer.unrealized.trade\",\"crossOrigin\":false}",
+        "authenticator_data": "o17MkfZN0EppIChbQxCo7o_ez1yPUnsAIl_KkH4nLNMFAAAAAA"
+      }
+    },
+    {
+      "name": "webauthn_p256/create intent",
+      "expect": "ok",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "intents.near",
+        "expect": "create",
+        "salt": "252812b3"
+      },
+      "hash": "a7b1acc11f224bdd99c49549be64a136a747f9538c9a1bbe8e033d7c6b0ba9a8",
+      "signed": {
+        "standard": "webauthn",
+        "payload": "{\"signer_id\":\"0x4a9758f737416fe54f7c68aa405e1fd9a01d1ec6\",\"verifying_contract\":\"intents.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hgiSqjkTiA+9LSdLUxsSls=\",\"intents\":[{\"intent\":\"auth_call\",\"contract_id\":\"trade.unrlzd.near\",\"msg\":\"{\\\"v\\\":1,\\\"device_public_keys\\\":[\\\"ed25519:DcA2MzgpJbrUATQLLceocVckhhAqrkingax4oJ9kZ847\\\"],\\\"caps\\\":null,\\\"automation\\\":null}\",\"attached_deposit\":\"700000000000000000000000\",\"min_gas\":\"200000000000000\"}]}",
+        "public_key": "p256:3kxmXGHeQVWTaBfMfU7W3mmTw3CEAiWz2QyU78ucFVWezFCAiz9UBdikQzmjyigdekU777SHTSh2CXG6eTKNRcgs",
+        "signature": "p256:5bnT2uE3zDqNy2qiAXDvGSbTve2j6Hw365DnBoXq8r2gLbdVHMhFx3UKZjUYRtukjMKb2arwjcsvEWNZZg6zi6cn",
+        "client_data_json": "{\"type\":\"webauthn.get\",\"challenge\":\"p7GswR8iS92ZxJVJvmShNqdH-VOMmhu-jgM9fGsLqag\",\"origin\":\"https://signer.unrealized.trade\",\"crossOrigin\":false}",
+        "authenticator_data": "o17MkfZN0EppIChbQxCo7o_ez1yPUnsAIl_KkH4nLNMFAAAAAA"
+      }
+    },
+    {
+      "name": "nep413/create intent",
+      "expect": "ok",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "intents.near",
+        "expect": "create",
+        "salt": "252812b3"
+      },
+      "hash": "c4f8ff56ae9d35aa9691cf760316df005f9fcf5bfeeefa4dd6ca45d7b1061bd1",
+      "signed": {
+        "standard": "nep413",
+        "payload": {
+          "message": "{\"signer_id\":\"5192ef3a1ba181e20992e67d7e25886e824fd4718599974a5e7e2fe07543e27b\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"intents\":[{\"intent\":\"auth_call\",\"contract_id\":\"trade.unrlzd.near\",\"msg\":\"{\\\"v\\\":1,\\\"device_public_keys\\\":[\\\"ed25519:DcA2MzgpJbrUATQLLceocVckhhAqrkingax4oJ9kZ847\\\"],\\\"caps\\\":null,\\\"automation\\\":null}\",\"attached_deposit\":\"700000000000000000000000\",\"min_gas\":\"200000000000000\"}]}",
+          "nonce": "Vij2xgAlKBKzADhFBVFm2hgiSqjkTiA+9LSdLUxsSls=",
+          "recipient": "intents.near"
+        },
+        "public_key": "ed25519:6VRySZzx2Tpnz9N27p7jpacvnMq7e8u1USRpLycpQ6uQ",
+        "signature": "ed25519:53ZoJA3jfvgnKhutHfooMowTfFZk6BuatzZvZaABrmY3iAoHLiFcYcFR6mmApJCipPfUToEiGycLWPjDjah8ih2S"
+      }
+    },
+    {
+      "name": "NEG create intent submitted to a TA",
+      "expect": "E_PAYLOAD",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "0x4a9758f737416fe54f7c68aa405e1fd9a01d1ec6",
+        "ownerKind": "P256",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "webauthn",
+        "payload": "{\"signer_id\":\"0x4a9758f737416fe54f7c68aa405e1fd9a01d1ec6\",\"verifying_contract\":\"intents.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hgiSqjkTiA+9LSdLUxsSls=\",\"intents\":[{\"intent\":\"auth_call\",\"contract_id\":\"trade.unrlzd.near\",\"msg\":\"{\\\"v\\\":1,\\\"device_public_keys\\\":[\\\"ed25519:DcA2MzgpJbrUATQLLceocVckhhAqrkingax4oJ9kZ847\\\"],\\\"caps\\\":null,\\\"automation\\\":null}\",\"attached_deposit\":\"700000000000000000000000\",\"min_gas\":\"200000000000000\"}]}",
+        "public_key": "p256:3kxmXGHeQVWTaBfMfU7W3mmTw3CEAiWz2QyU78ucFVWezFCAiz9UBdikQzmjyigdekU777SHTSh2CXG6eTKNRcgs",
+        "signature": "p256:5bnT2uE3zDqNy2qiAXDvGSbTve2j6Hw365DnBoXq8r2gLbdVHMhFx3UKZjUYRtukjMKb2arwjcsvEWNZZg6zi6cn",
+        "client_data_json": "{\"type\":\"webauthn.get\",\"challenge\":\"p7GswR8iS92ZxJVJvmShNqdH-VOMmhu-jgM9fGsLqag\",\"origin\":\"https://signer.unrealized.trade\",\"crossOrigin\":false}",
+        "authenticator_data": "o17MkfZN0EppIChbQxCo7o_ez1yPUnsAIl_KkH4nLNMFAAAAAA"
+      }
+    },
+    {
+      "name": "erc191/sign-in",
+      "expect": "ok",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "auth.unrealized.trade",
+        "expect": "auth"
+      },
+      "hash": "1333384e5e9808edf5252e40302edda21a02d93aa3ad5c3a4802f964361cdc1c",
+      "signed": {
+        "standard": "erc191",
+        "payload": "{\"signer_id\":\"0x27bddf118feba46b116925778dfdbc4cbec42edb\",\"verifying_contract\":\"auth.unrealized.trade\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hh0hmLKJW/Va09HIUVLdwU=\",\"auth\":\"c7f1e2\"}",
+        "signature": "secp256k1:KknfNGWGQcKCZHnP9yy2jCR8p1WkU98FVxsXQoNdziia61m7nTWK3UmAdufSyorNDJhheoiFMGg6eLBUGkMZQNet8"
+      }
+    },
+    {
+      "name": "nep413/sign-in",
+      "expect": "ok",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "auth.unrealized.trade",
+        "expect": "auth"
+      },
+      "hash": "54923815ca543ecc1934e283a3eb4cfc41a5cdfd6060bdbaece2de5b144936df",
+      "signed": {
+        "standard": "nep413",
+        "payload": {
+          "message": "{\"signer_id\":\"5192ef3a1ba181e20992e67d7e25886e824fd4718599974a5e7e2fe07543e27b\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"auth\":\"c7f1e2\"}",
+          "nonce": "Vij2xgAlKBKzADhFBVFm2hh0hmLKJW/Va09HIUVLdwU=",
+          "recipient": "auth.unrealized.trade"
+        },
+        "public_key": "ed25519:6VRySZzx2Tpnz9N27p7jpacvnMq7e8u1USRpLycpQ6uQ",
+        "signature": "ed25519:5cK8CvXkQbBjn1nRjbg13Wv2oX4uPkeki7yqbyp7yivnkJLwd7RzYmuPfE5v8UUD9Ygc8cyQpdCPYM9qNCUdjGXw"
+      }
+    },
+    {
+      "name": "NEG cross-TA",
+      "expect": "E_VERIFYING_CONTRACT",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"fedcba9876543210.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hiPEvl1KstTGSi0R0gnLTo=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1000000000000000000000000\",\"to\":\"alice.near\"}]}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:2AHDxqcTJRmdCEGMqSZqPspCr72MfgbbhT148QdGExkT4UPhR96un44ogZcahUrGt8TnwdvMwtn3xPops9fvwbtn"
+      }
+    },
+    {
+      "name": "NEG intents-bound",
+      "expect": "E_VERIFYING_CONTRACT",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"intents.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hjm+iGoJFYBwZjDkWgrzcM=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1000000000000000000000000\",\"to\":\"alice.near\"}]}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:3ZmQjytusMh7qVPxD8mkCcxXfW5SHDaPr8fB2rBogth3JvFwfy2i1uNK1x4ySH1RcGt8voHBzKV58Bo9EbdABm1r"
+      }
+    },
+    {
+      "name": "NEG testnet-bound",
+      "expect": "E_VERIFYING_CONTRACT",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.testnet\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hhbTxuEwI8vdLsyx6lr/7Q=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1000000000000000000000000\",\"to\":\"alice.near\"}]}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:66TVqYfQ1JSv11ndzuavkakRwj4zp5UHdrLSRu17ZfcNaAmdeDD6TFWikM8Cbj7BgmfZyJ5GQW3XypRtdJjA4yH4"
+      }
+    },
+    {
+      "name": "NEG expired",
+      "expect": "E_DEADLINE",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T11:58:00.000Z\",\"nonce\":\"Vij2xgAlKBKzANBRO+9l2hhl6NtkUELvApQ1T7cwbGU=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1000000000000000000000000\",\"to\":\"alice.near\"}]}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:2XzVvbuQKgw8K3s8nCXj6u5dRobbQG16ZT6oxgLzpSqd8v4SPEfupv5xSXneGPLa87FiqTAM1yX18Z97YRWuHMXA"
+      }
+    },
+    {
+      "name": "NEG deadline over the 15 min cap",
+      "expect": "E_DEADLINE",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T13:00:00.000Z\",\"nonce\":\"Vij2xgAlKBKzACCZXFFp2hjoN347PR/ix8ipAMP+WYs=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1000000000000000000000000\",\"to\":\"alice.near\"}]}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:2QY56fGRqKTs9iuhLzia6SUSrucuKBBgPjNxg5f86ndN2tByyeLrmrr9y1HuTTFtirTcBBaDtd6DfBguzj1TxuC7"
+      }
+    },
+    {
+      "name": "NEG wrong salt",
+      "expect": "E_NONCE_SALT",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAAAAAAADhFBVFm2hg1Al4FvetB35yDhBlGoIU=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1000000000000000000000000\",\"to\":\"alice.near\"}]}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:4Bz5NsQgXxd4hb7MEGVLN1equEK1iy2AoQPHk7XY8LmeodettdRMG5Kud68riFY7PBXFAcfYHL5osJnAZhGdy5vG"
+      }
+    },
+    {
+      "name": "NEG nonce deadline < payload deadline",
+      "expect": "E_NONCE_DEADLINE",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzAOD9DENm2hhYMFFqwnexytek7F7M9Kw=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1000000000000000000000000\",\"to\":\"alice.near\"}]}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:4a64wm8aLXM1wtrNKct644eohinTfaKnALtdG4wxbkcN9CnXd1AAdR9uFf4rvYm5heW8vYkNADsJUCqssUbn5gvL"
+      }
+    },
+    {
+      "name": "NEG nonce deadline over the cap",
+      "expect": "E_NONCE_DEADLINE",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzACCZXFFp2hirHvwvYV8lu6OyRh/K9PA=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1000000000000000000000000\",\"to\":\"alice.near\"}]}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:4FW4Qx1jK1ESYYQPmTfziVmRXjQVyChhY3zDToHsEP7MAF1e2ibCwsrvneVoLeVS4KLehiFZhVLkPZdymZ5aPkXo"
+      }
+    },
+    {
+      "name": "NEG erc191 high-s twin",
+      "expect": "E_SIG",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "0x27bddf118feba46b116925778dfdbc4cbec42edb",
+        "ownerKind": "Secp256k1",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "erc191",
+        "payload": "{\"signer_id\":\"0x27bddf118feba46b116925778dfdbc4cbec42edb\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hgYXWODGU9dsojcVIXF5+Y=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1000000000000000000000000\",\"to\":\"alice.near\"}]}",
+        "signature": "secp256k1:8JARCemayVM6HMWMv79RFEczVcw6GajCcN6tjCLU9ac2aBoxHRqkQmuswHmsTtco7tSth7uvhjxXuw8ZhrCMNrDxb"
+      }
+    },
+    {
+      "name": "NEG erc191 v=27",
+      "expect": "E_SIG",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "0x27bddf118feba46b116925778dfdbc4cbec42edb",
+        "ownerKind": "Secp256k1",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "erc191",
+        "payload": "{\"signer_id\":\"0x27bddf118feba46b116925778dfdbc4cbec42edb\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hgYXWODGU9dsojcVIXF5+Y=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1000000000000000000000000\",\"to\":\"alice.near\"}]}",
+        "signature": "secp256k1:8JARCemayVM6HMWMv79RFEczVcw6GajCcN6tjCLU9ac2ZqrDfzpmsyWMhbVwzLL8LhfD8rBgDDqaZXrY1ubYcbUDy"
+      }
+    },
+    {
+      "name": "NEG P-256 high-s",
+      "expect": "E_HIGH_S",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "0x4a9758f737416fe54f7c68aa405e1fd9a01d1ec6",
+        "ownerKind": "P256",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "webauthn",
+        "payload": "{\"signer_id\":\"0x4a9758f737416fe54f7c68aa405e1fd9a01d1ec6\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hgYXWODGU9dsojcVIXF5+Y=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1000000000000000000000000\",\"to\":\"alice.near\"}]}",
+        "public_key": "p256:3kxmXGHeQVWTaBfMfU7W3mmTw3CEAiWz2QyU78ucFVWezFCAiz9UBdikQzmjyigdekU777SHTSh2CXG6eTKNRcgs",
+        "signature": "p256:57c52brXfiMYwnh994dSk8fe5km26YEkqoY7ZBH6fechKw4UmVHMVN9MhWEGb4JLqgV7C257vhrwnzwm1SU9oikD",
+        "client_data_json": "{\"type\":\"webauthn.get\",\"challenge\":\"tZOyXZcoos5I07J8pqb-Phf8sAk7ZVT-tdjN8wflkeI\",\"origin\":\"https://signer.unrealized.trade\",\"crossOrigin\":false}",
+        "authenticator_data": "o17MkfZN0EppIChbQxCo7o_ez1yPUnsAIl_KkH4nLNMFAAAAAA"
+      }
+    },
+    {
+      "name": "NEG webauthn no UV",
+      "expect": "E_WEBAUTHN",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "0x4a9758f737416fe54f7c68aa405e1fd9a01d1ec6",
+        "ownerKind": "P256",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "webauthn",
+        "payload": "{\"signer_id\":\"0x4a9758f737416fe54f7c68aa405e1fd9a01d1ec6\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hgYXWODGU9dsojcVIXF5+Y=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1000000000000000000000000\",\"to\":\"alice.near\"}]}",
+        "public_key": "p256:3kxmXGHeQVWTaBfMfU7W3mmTw3CEAiWz2QyU78ucFVWezFCAiz9UBdikQzmjyigdekU777SHTSh2CXG6eTKNRcgs",
+        "signature": "p256:5qAt5ezsaYK2TX159UhJBHKLvUwS6zvmqp4xPT6p5hqzKbpDxoMjM5L6Gx9YJga2ZJqLtCmvukWaT4iWH8rrSxUJ",
+        "client_data_json": "{\"type\":\"webauthn.get\",\"challenge\":\"tZOyXZcoos5I07J8pqb-Phf8sAk7ZVT-tdjN8wflkeI\",\"origin\":\"https://signer.unrealized.trade\",\"crossOrigin\":false}",
+        "authenticator_data": "o17MkfZN0EppIChbQxCo7o_ez1yPUnsAIl_KkH4nLNMBAAAAAA"
+      }
+    },
+    {
+      "name": "NEG webauthn no UP",
+      "expect": "E_WEBAUTHN",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "0x4a9758f737416fe54f7c68aa405e1fd9a01d1ec6",
+        "ownerKind": "P256",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "webauthn",
+        "payload": "{\"signer_id\":\"0x4a9758f737416fe54f7c68aa405e1fd9a01d1ec6\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hgYXWODGU9dsojcVIXF5+Y=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1000000000000000000000000\",\"to\":\"alice.near\"}]}",
+        "public_key": "p256:3kxmXGHeQVWTaBfMfU7W3mmTw3CEAiWz2QyU78ucFVWezFCAiz9UBdikQzmjyigdekU777SHTSh2CXG6eTKNRcgs",
+        "signature": "p256:2KitW7Uc7fvY4E4TVJW6Je9towZSssHTSVV3EbFsUMokGDqj6dHxbxAuxMzeZTRbZYs7uSirMa1Jhew2hyqMiQ2W",
+        "client_data_json": "{\"type\":\"webauthn.get\",\"challenge\":\"tZOyXZcoos5I07J8pqb-Phf8sAk7ZVT-tdjN8wflkeI\",\"origin\":\"https://signer.unrealized.trade\",\"crossOrigin\":false}",
+        "authenticator_data": "o17MkfZN0EppIChbQxCo7o_ez1yPUnsAIl_KkH4nLNMEAAAAAA"
+      }
+    },
+    {
+      "name": "NEG webauthn BS without BE",
+      "expect": "E_WEBAUTHN",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "0x4a9758f737416fe54f7c68aa405e1fd9a01d1ec6",
+        "ownerKind": "P256",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "webauthn",
+        "payload": "{\"signer_id\":\"0x4a9758f737416fe54f7c68aa405e1fd9a01d1ec6\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hgYXWODGU9dsojcVIXF5+Y=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1000000000000000000000000\",\"to\":\"alice.near\"}]}",
+        "public_key": "p256:3kxmXGHeQVWTaBfMfU7W3mmTw3CEAiWz2QyU78ucFVWezFCAiz9UBdikQzmjyigdekU777SHTSh2CXG6eTKNRcgs",
+        "signature": "p256:5mhyyEGgFGZhTxUhU3MiUSSPmdFVuGHY8bNz8db73aCRx4r6Se78sBYD5qAoj6UgXBr7ncQPTzwhhAnMFj2Svo7u",
+        "client_data_json": "{\"type\":\"webauthn.get\",\"challenge\":\"tZOyXZcoos5I07J8pqb-Phf8sAk7ZVT-tdjN8wflkeI\",\"origin\":\"https://signer.unrealized.trade\",\"crossOrigin\":false}",
+        "authenticator_data": "o17MkfZN0EppIChbQxCo7o_ez1yPUnsAIl_KkH4nLNMVAAAAAA"
+      }
+    },
+    {
+      "name": "NEG webauthn type=create",
+      "expect": "E_WEBAUTHN",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "0x4a9758f737416fe54f7c68aa405e1fd9a01d1ec6",
+        "ownerKind": "P256",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "webauthn",
+        "payload": "{\"signer_id\":\"0x4a9758f737416fe54f7c68aa405e1fd9a01d1ec6\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hgYXWODGU9dsojcVIXF5+Y=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1000000000000000000000000\",\"to\":\"alice.near\"}]}",
+        "public_key": "p256:3kxmXGHeQVWTaBfMfU7W3mmTw3CEAiWz2QyU78ucFVWezFCAiz9UBdikQzmjyigdekU777SHTSh2CXG6eTKNRcgs",
+        "signature": "p256:UgPFsyLWfncV6z4C4gyjxWyQnMh3B6Hq3oxPDWqHhKt43dKBftzKkr3MKf5xPpGSdfgwhnwU5eVjKdPMhHicCcH",
+        "client_data_json": "{\"type\":\"webauthn.create\",\"challenge\":\"tZOyXZcoos5I07J8pqb-Phf8sAk7ZVT-tdjN8wflkeI\",\"origin\":\"https://signer.unrealized.trade\",\"crossOrigin\":false}",
+        "authenticator_data": "o17MkfZN0EppIChbQxCo7o_ez1yPUnsAIl_KkH4nLNMFAAAAAA"
+      }
+    },
+    {
+      "name": "NEG webauthn challenge of another payload",
+      "expect": "E_WEBAUTHN",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "0x4a9758f737416fe54f7c68aa405e1fd9a01d1ec6",
+        "ownerKind": "P256",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "webauthn",
+        "payload": "{\"signer_id\":\"0x4a9758f737416fe54f7c68aa405e1fd9a01d1ec6\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hgYXWODGU9dsojcVIXF5+Y=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1000000000000000000000000\",\"to\":\"alice.near\"}]}",
+        "public_key": "p256:3kxmXGHeQVWTaBfMfU7W3mmTw3CEAiWz2QyU78ucFVWezFCAiz9UBdikQzmjyigdekU777SHTSh2CXG6eTKNRcgs",
+        "signature": "p256:3tDaQUbZsLAcACgnao46oVnaFxu4f7jpeF8ngFqnADgBjtknE6DAn9EGEM6JYHpmDRZ9dE7wEAgrJ5zR7qVgSJK",
+        "client_data_json": "{\"type\":\"webauthn.get\",\"challenge\":\"LXEWQrcmsEQBYnyp-6wy9chTD7GQPMTbAiWHF5IaSIE\",\"origin\":\"https://signer.unrealized.trade\",\"crossOrigin\":false}",
+        "authenticator_data": "o17MkfZN0EppIChbQxCo7o_ez1yPUnsAIl_KkH4nLNMFAAAAAA"
+      }
+    },
+    {
+      "name": "NEG P-256 key on a Secp256k1 owner",
+      "expect": "E_OWNER_KIND",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "0x27bddf118feba46b116925778dfdbc4cbec42edb",
+        "ownerKind": "Secp256k1",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "webauthn",
+        "payload": "{\"signer_id\":\"0x27bddf118feba46b116925778dfdbc4cbec42edb\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hgYXWODGU9dsojcVIXF5+Y=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1000000000000000000000000\",\"to\":\"alice.near\"}]}",
+        "public_key": "p256:3kxmXGHeQVWTaBfMfU7W3mmTw3CEAiWz2QyU78ucFVWezFCAiz9UBdikQzmjyigdekU777SHTSh2CXG6eTKNRcgs",
+        "signature": "p256:3LpfAstmq4GDUrhK6KS3gqPjTBgH8WnZB6wZZ8txCwRCDvtbCcFfEFF1Jh3cruYFPeHxbCoysEp7aWen4ExPuDND",
+        "client_data_json": "{\"type\":\"webauthn.get\",\"challenge\":\"JobZ9L6-RRgObynAf3qbvLPG04M_19D2txDte7TGGf8\",\"origin\":\"https://signer.unrealized.trade\",\"crossOrigin\":false}",
+        "authenticator_data": "o17MkfZN0EppIChbQxCo7o_ez1yPUnsAIl_KkH4nLNMFAAAAAA"
+      }
+    },
+    {
+      "name": "NEG another key",
+      "expect": "E_NOT_OWNER",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hg/s9b82eBybRG1Eelklc4=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1000000000000000000000000\",\"to\":\"alice.near\"}]}",
+        "public_key": "ed25519:FHX4Ug2nbWieVgpui2ubRb77EecbGmXe5wVXFb136wEy",
+        "signature": "ed25519:j14h52RQYKPhtZHpJBsVJ3HQzD59mQgQRvgkHfbAYsgRBhYJvS142UGVwYGj9jAruAhQe9MGrqFkPa6ncvvRp9n"
+      }
+    },
+    {
+      "name": "NEG implicit key disabled",
+      "expect": "E_NOT_OWNER",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": false,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hiFqZ5uhGNYlaOnJnS66wA=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1000000000000000000000000\",\"to\":\"alice.near\"}]}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:5eWyffaStXKXjAkG8EpthrVkq2sJiuuUwu2x4uQt6dt9ToGBkDYZYKJGifcatF4yrHNtK9RQa6EoYJRG8zQ8RDcR"
+      }
+    },
+    {
+      "name": "NEG owner signatures off",
+      "expect": "E_SIGNED_DISABLED",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": false,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hjv9nxG6nO6UtmSwmCCZS8=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1000000000000000000000000\",\"to\":\"alice.near\"}]}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:4yecsrzkenXE5XySEsNmnc7cHdSTj2QhvabzxUz9b9oC4d1gH9QGjHxqZJmypx1TCEsnAAdXgEq97bLgwCXKUy6i"
+      }
+    },
+    {
+      "name": "NEG named owner",
+      "expect": "E_OWNER_KIND",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "alice.near",
+        "ownerKind": "Named",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hia+lalVWO8bfMQlHyrZEw=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1000000000000000000000000\",\"to\":\"alice.near\"}]}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:2fEuVSBJVCegk92oD7Gs82kke4mHiFW7EA9azDjGtA7AJpQdsknv2g5PRjJeCrVppTF5pWPzKGQxtR43X4hTVC4D"
+      }
+    },
+    {
+      "name": "NEG payload tampered after signing",
+      "expect": "E_SIG",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hgD4VY54E1CcpnhzG/L0Q0=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"2000000000000000000000000\",\"to\":\"alice.near\"}]}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:2Z872K7tmHD6hPziMFSkikkkc5XqouWsEhTXpY9AxqnezRdZDjetptN4soLLtw5J4Ho94xfowYcjuqQpttgmb3Tj"
+      }
+    },
+    {
+      "name": "NEG 5 ops",
+      "expect": "E_OPS",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hjcfrf6R0NoXceEVQ0zSNg=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1\",\"to\":\"alice.near\"},{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1\",\"to\":\"alice.near\"},{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1\",\"to\":\"alice.near\"},{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1\",\"to\":\"alice.near\"},{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1\",\"to\":\"alice.near\"}]}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:4ZbeSrn4rpcX4cgykn3QejBNwGzdVFmui9EmK2MLRSM6oSkXLUJc42GGLe2BRdTYb8R9eff9w1mD2D1qkwSq62C5"
+      }
+    },
+    {
+      "name": "NEG 0 ops",
+      "expect": "E_OPS",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hiIPmJ5DEB9gXNFM2q+GpE=\",\"ops\":[]}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:3hGqmrMwBbhXUPSFwLXCFTRagVHsYEycKgVKLiG3EEq9yY7n1qBVimDNam9UpXNscC41sST4KfTEKAdE7HzSXPPD"
+      }
+    },
+    {
+      "name": "NEG upgrade with another op",
+      "expect": "E_OPS",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hhf1gOZytuHLfFAwpttL7E=\",\"ops\":[{\"op\":\"upgrade\",\"code_hash\":\"11111111111111111111111111111111\"},{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1\",\"to\":\"alice.near\"}]}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:2Mx7qxKu9NoCivUdpRowepK6Cs1dL2t93wqKd8Ykw3eHQPKbpL7DoYdquuyLbUZiuTJvsdKfXJ5xUF54DHMi2RZh"
+      }
+    },
+    {
+      "name": "NEG unknown op field",
+      "expect": "E_PAYLOAD",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hhQl0UV5LO8x6VqdnQ65zc=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1\",\"to\":\"alice.near\",\"memo\":\"x\"}]}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:hDjbFJwbKTmYsdW1DzhHekBfXV8qaMuYQUSo5SokwFZxTF9oj1gFPZ9RB7RDkLR5c4DHUsQJ8UG5eKmawhrhPRs"
+      }
+    },
+    {
+      "name": "NEG unknown op",
+      "expect": "E_PAYLOAD",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hg3dNh5uvTaKyvZxl/umlw=\",\"ops\":[{\"op\":\"transfer\"}]}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:3Z43iPypPAgkCg5U32esepv86pKj5WmJEH4XdZSLTpZ7gxcuxwz4qf9e2tHDPhMVbNSQw792iPX4wAJv9jvj4jZj"
+      }
+    },
+    {
+      "name": "NEG duplicate key",
+      "expect": "E_PAYLOAD",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hjNmdKZGvt/koIXrHrrtOg=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1\",\"amount\":\"9\",\"to\":\"alice.near\"}]}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:2q8CUT1qfm7o7D3HQdiWP89AgUnDyUP1rXJH4L2Pxw4HboMUfELsVquAEhE51GEGQanDbEu8ZhbgZRFePKtmdhS1"
+      }
+    },
+    {
+      "name": "NEG unknown body field",
+      "expect": "E_PAYLOAD",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hi6KCXSus1iCxatleQNVrM=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1\",\"to\":\"alice.near\"}],\"x\":1}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:5qYUjKq5F36Ptx5pYkYhKRYmztpz9rnp5pLwj47U74ZuG6Eq9yJ6jUn24pdEgdyYjSy3MfLeFy6X4ZKyeUDAqCMh"
+      }
+    },
+    {
+      "name": "NEG amount as a number",
+      "expect": "E_PAYLOAD",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hh868aPVfHTCtKOtgvEIm8=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":1,\"to\":\"alice.near\"}]}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:5x8xC7cb9xoruttEQ976yiAWNKPvVhEvn6pTTq2bkGMcRkNTqRxsfntnE6WebshKVVsSYGqib85oRY2Nqd2Yrkk4"
+      }
+    },
+    {
+      "name": "NEG field on an empty-struct op (rotate_salt)",
+      "expect": "E_PAYLOAD",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hhS5cMmOVw1uMcgfEy/3GI=\",\"ops\":[{\"op\":\"rotate_salt\",\"salt\":\"00000000\"}]}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:iYKaNJFUyx9cUaSwoJz4H1irFwDe1rSfX393mJDKo5Eb8aq5pukFmEtAESY8oeYixDLAQDK5BZwtCmQaccqB4T8"
+      }
+    },
+    {
+      "name": "NEG field on an empty-struct op (cancel_auto_upgrade)",
+      "expect": "E_PAYLOAD",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hgy50cMYpxYtjobcoxct+4=\",\"ops\":[{\"op\":\"cancel_auto_upgrade\",\"enabled\":true}]}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:M1mqWd1NLXK7qp9rmdcqbDeP4EVJmu96NWNcZnV2uz1Y74LcE4tGW8n5nmeo8rFb5SrYeydUjoKdCutUptEUoG7"
+      }
+    },
+    {
+      "name": "NEG rescue with two asset variants",
+      "expect": "E_PAYLOAD",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hgSHiOyhOCwcRq0QjwkyNU=\",\"ops\":[{\"op\":\"rescue\",\"asset\":{\"Ft\":{\"contract\":\"t.near\",\"amount\":\"1\"},\"Nft\":{\"contract\":\"n.near\",\"token_id\":\"1\"}}}]}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:vPrLsCrGPvCj3rJT6emyiXY9PhaWyN2y3G2pfxuW61R64QaSrAcrBAaU35Fx2SWQd5rF7pmjQTQPv2uVBakVxcm"
+      }
+    },
+    {
+      "name": "NEG rescue asset with an unknown field",
+      "expect": "E_PAYLOAD",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hiH92Cv+KYF8PGU/fuFq5Q=\",\"ops\":[{\"op\":\"rescue\",\"asset\":{\"Nft\":{\"contract\":\"n.near\",\"token_id\":\"1\",\"to\":\"x.near\"}}}]}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:4X4Qy5K8Y7LczRuJmzJx8sriqtRGRqwxUQYtEYv58AqvhK73sLxwUJcs8oFeW2d7waQN1eoqTtsvZpxuBcpD1ZWR"
+      }
+    },
+    {
+      "name": "NEG field on an empty-struct op (revoke_automation)",
+      "expect": "E_PAYLOAD",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hgJW3VRscbHJGReR5+Odag=\",\"ops\":[{\"op\":\"revoke_automation\",\"public_key\":null}]}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:3CHE8evsysCz3ykVskrELFeArV5uFHXxNWDPgPYF3y9AswVbSKzKmSuKX7aFRHY1f14wfmaft3hiPuwEtVxZkXKg"
+      }
+    },
+    {
+      "name": "NEG deadline with an offset",
+      "expect": "E_DEADLINE",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000+00:00\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hhoF42GL4MLwLDvJBWkSCw=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1\",\"to\":\"alice.near\"}]}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:GRV2vgposvTurZ6fyMy4MgawqDAt382eSPRmsGP7duLezasPntMf8Gzy7J4Zs6Aa45XaZM8hSmeKzpm1f83iCzd"
+      }
+    },
+    {
+      "name": "NEG payload over 4096 bytes",
+      "expect": "E_PAYLOAD_SIZE",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hglXYI7/yC9e6Ubd5b98TY=\",\"ops\":[{\"op\":\"add_withdraw_destination\",\"label\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\"asset\":\"a\",\"recipient\":\"b\",\"recipient_type\":\"c\"}]}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:66Qk2aLmn9nmb7LftaU4gtj7HndxYDnrHqjDuGzg7q3eig13SvK2dc4h8z9V2zk26hesaLMDgL8aEEycPTLEZtat"
+      }
+    },
+    {
+      "name": "NEG nep413 callbackUrl",
+      "expect": "E_PAYLOAD",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "5192ef3a1ba181e20992e67d7e25886e824fd4718599974a5e7e2fe07543e27b",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "nep413",
+        "payload": {
+          "message": "{\"signer_id\":\"5192ef3a1ba181e20992e67d7e25886e824fd4718599974a5e7e2fe07543e27b\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1000000000000000000000000\",\"to\":\"alice.near\"}]}",
+          "nonce": "Vij2xgAlKBKzADhFBVFm2hhffm0aLfVXonC+so8nirA=",
+          "recipient": "0123456789abcdef.trade.unrlzd.near",
+          "callbackUrl": "https://x"
+        },
+        "public_key": "ed25519:6VRySZzx2Tpnz9N27p7jpacvnMq7e8u1USRpLycpQ6uQ",
+        "signature": "ed25519:4knEKtdaSo3nz9rNiyYPAusRtUpz8G9zYrL9V45ytEftx18SJngHtRSNGmCKiBSSgvDAXnbR7LbAHo6PSF5iv6m1"
+      }
+    },
+    {
+      "name": "nep413/callbackUrl null",
+      "expect": "ok",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "5192ef3a1ba181e20992e67d7e25886e824fd4718599974a5e7e2fe07543e27b",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "hash": "aa7e7dee2c4a521542a04536da927ab57150176478326c965804616391d86b24",
+      "signed": {
+        "standard": "nep413",
+        "payload": {
+          "message": "{\"signer_id\":\"5192ef3a1ba181e20992e67d7e25886e824fd4718599974a5e7e2fe07543e27b\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1000000000000000000000000\",\"to\":\"alice.near\"}]}",
+          "nonce": "Vij2xgAlKBKzADhFBVFm2hi5L2nU6Ya55aGCE+a2fXY=",
+          "recipient": "0123456789abcdef.trade.unrlzd.near",
+          "callbackUrl": null
+        },
+        "public_key": "ed25519:6VRySZzx2Tpnz9N27p7jpacvnMq7e8u1USRpLycpQ6uQ",
+        "signature": "ed25519:fufSMyfG7tyUFhxuJaSMoZqBZecBHp8s7f1CDeTwfP3vDaybQDWU4qFwg9SDRmPAh9daRDbxUDp34Cumvmt25wk"
+      }
+    },
+    {
+      "name": "NEG webauthn client data over 1 KiB",
+      "expect": "E_WEBAUTHN",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "0x4a9758f737416fe54f7c68aa405e1fd9a01d1ec6",
+        "ownerKind": "P256",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "webauthn",
+        "payload": "{\"signer_id\":\"0x4a9758f737416fe54f7c68aa405e1fd9a01d1ec6\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"Vij2xgAlKBKzADhFBVFm2hi5L2nU6Ya55aGCE+a2fXY=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1000000000000000000000000\",\"to\":\"alice.near\"}]}",
+        "public_key": "p256:3kxmXGHeQVWTaBfMfU7W3mmTw3CEAiWz2QyU78ucFVWezFCAiz9UBdikQzmjyigdekU777SHTSh2CXG6eTKNRcgs",
+        "signature": "p256:3kiQN6DhFinrK4va6kBerV8AvQ2oGsZ1k71ftfWeWN3m4eCM9xtSRfokNz2XNhsZmeFUZcCmHP8V6VFbgmmnudi9",
+        "client_data_json": "{\"type\":\"webauthn.get\",\"challenge\":\"WndvfmRuuAlBqtfvQOSWZX1_VwYpgTaM6Dm6h1U-fGc\",\"origin\":\"https://signer.unrealized.trade\",\"crossOrigin\":false,\"other_keys_can_be_added_here\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}",
+        "authenticator_data": "o17MkfZN0EppIChbQxCo7o_ez1yPUnsAIl_KkH4nLNMFAAAAAA"
+      }
+    },
+    {
+      "name": "NEG legacy nonce",
+      "expect": "E_NONCE_SALT",
+      "ctx": {
+        "nowMs": 1790856000000,
+        "verifyingContract": "0123456789abcdef.trade.unrlzd.near",
+        "owner": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+        "ownerKind": "Ed25519",
+        "signedEnabled": true,
+        "implicitEnabled": true,
+        "salt": "252812b3"
+      },
+      "signed": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-10-01T12:05:00.000Z\",\"nonce\":\"xJ/qdCX6f4aZiXqXwVnGaQJn2QA7t4xT+vqPwVwyXYQ=\",\"ops\":[{\"op\":\"withdraw\",\"token\":null,\"amount\":\"1\",\"to\":\"alice.near\"}]}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:CTmZnWSiPGykGXCyj1v2zhHBD9CeGpxv3NjvomhFajT33Wp41RBDk33K6NVGubYWSftfbAkZxzNS4pu8wJG4w2v"
+      }
+    }
+  ]
+}

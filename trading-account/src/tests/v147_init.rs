@@ -14,6 +14,8 @@ fn init_with(auto: Option<AutomationInit>) -> TradingAccount {
         vec![Dex { id: a("v2.ref-finance.near"), kind: DexKind::RheaClassic }],
         a("wrap.near"),
         auto,
+        None,
+        None,
     )
 }
 

@@ -150,7 +150,7 @@ async fn upgrade_path_via_owner_upgrade() -> anyhow::Result<()> {
     ok(env.exec(d, acc, env.buy_ops(NEAR / 2, 1, true), "pre", NEAR).await?)?;
     let spent = env.day_spent(&u).await?;
     assert_eq!(env.global_hash(acc).await?, Some(env.code_hash.clone()));
-    assert_eq!(env.config(acc).await?["version"], "1.5.0");
+    assert_eq!(env.config(acc).await?["version"], "1.6.0");
 
     let v2 = env.deploy_global(out("trading_account_upgrade_test")).await?;
     // only the owner, with 1 yocto; device key can't even call it
@@ -167,6 +167,18 @@ async fn upgrade_path_via_owner_upgrade() -> anyhow::Result<()> {
         .await?)?;
     assert_eq!(env.global_hash(acc).await?, Some(env.code_hash.clone()));
 
+    // R2-09: the owner doors wait out the "pre" swap's settle window (100 blocks)
+    fails_with(
+        &u.owner
+            .call(acc, "owner_upgrade")
+            .args_json(json!({"code_hash": v2}))
+            .deposit(NearToken::from_yoctonear(1))
+            .gas(Gas::from_tgas(100))
+            .transact()
+            .await?,
+        "E_IN_FLIGHT",
+    );
+    env.worker.fast_forward(100).await?;
     owner_call(&u, "owner_upgrade", json!({"code_hash": v2})).await?;
     assert_eq!(env.global_hash(acc).await?, Some(v2.clone()));
     let cfg = env.config(acc).await?;

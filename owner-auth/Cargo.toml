@@ -1,0 +1,37 @@
+[package]
+name = "owner-auth"
+version = "1.0.0"
+edition = "2021"
+rust-version = "1.96"
+publish = false
+repository = "https://github.com/UNRLZD/contracts"
+description = "Owner-signed payloads for the trading account and factory (docs/owner-v16-spec.md): near/intents MultiPayload (erc191, raw_ed25519, nep413, webauthn) verified with NEAR host functions."
+
+[lints]
+workspace = true
+
+[lib]
+crate-type = ["rlib"]
+
+[features]
+# Native-only signing helpers for tests (unit + sandbox): builds MultiPayloads per standard,
+# including the negative shapes (high-s, v = 27, UV missing). Never enabled in a contract build.
+testkit = ["dep:ed25519-dalek", "dep:k256", "dep:p256", "dep:sha2", "dep:sha3"]
+
+[dependencies]
+# `unstable` is the only way near-sdk 5.29.1 exposes env::ecrecover (erc191). It adds no code to the
+# contracts beyond that host import (recorded for the auditor, spec §6 / §12.2).
+near-sdk = { workspace = true, features = ["unstable"] }
+ed25519-dalek = { version = "2", optional = true, features = ["rand_core"] }
+k256 = { version = "0.13", optional = true, features = ["ecdsa"] }
+p256 = { version = "0.13", optional = true, features = ["ecdsa"] }
+sha2 = { version = "0.10", optional = true }
+sha3 = { version = "0.10", optional = true }
+
+[dev-dependencies]
+near-sdk = { workspace = true, features = ["unit-testing", "unstable"] }
+proptest = "1"
+curve25519-dalek = "4"
+serde_json = "1"
+# the testkit for this crate's own tests
+owner-auth = { path = ".", features = ["testkit"] }

@@ -549,6 +549,8 @@ fn new_account() -> TradingAccount {
         ],
         a("wrap.near"),
         None,
+        None,
+        None,
     )
 }
 
@@ -2679,6 +2681,7 @@ fn a1_u06_pruned_pending_order_is_not_resurrected() {
 }
 
 mod audit_a;
+mod audit_ext;
 mod intents;
 mod v143;
 mod v144;
@@ -2688,6 +2691,7 @@ mod v147;
 mod v147_init;
 mod v148;
 mod v149;
+mod v160;
 
 // ======================= v1.4.2: re-audit C1 =======================
 
@@ -2862,6 +2866,8 @@ fn new_shards_account() -> TradingAccount {
             Dex { id: a(SHARDS_F), kind: DexKind::ShardsToken },
         ],
         a("wrap.near"),
+        None,
+        None,
         None,
     )
 }

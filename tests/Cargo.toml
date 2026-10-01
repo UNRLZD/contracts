@@ -22,3 +22,5 @@ reqwest = { version = "0.12", default-features = false, features = ["json", "rus
 near-primitives = "=0.37.4"
 near-crypto = "=0.37.4"
 borsh = "1"
+# v1.6: owner-signed payloads per standard (docs/owner-v16-spec.md §6.1 testkit).
+owner-auth = { path = "../owner-auth", features = ["testkit"] }

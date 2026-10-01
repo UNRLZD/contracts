@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["trading-account", "factory", "mocks/mock-ft", "mocks/global-deployer", "mocks/mock-plach", "mocks/gas-burner", "tests"]
+members = ["owner-auth", "trading-account", "factory", "mocks/mock-ft", "mocks/global-deployer", "mocks/mock-plach", "mocks/gas-burner", "tests"]
 
 [workspace.dependencies]
 # default-features = false: no wee_alloc (RUSTSEC-2022-0054); the default Rust wasm allocator is used.

@@ -285,6 +285,8 @@ fn v148_init_and_upgrade_semantics() {
             vec![Dex { id: a("v2.ref-finance.near"), kind: DexKind::RheaClassic }],
             a("wrap.near"),
             Some(AutomationInit { public_key: auto_pk(), allowance: U128(NEAR), weekly_yocto: w }),
+            None,
+            None,
         );
         week(&c).allowance_yocto
     };

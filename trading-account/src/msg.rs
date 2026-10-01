@@ -25,6 +25,15 @@ pub enum DexKind {
     /// which trades against itself (curve, then in-token AMM). The factory id itself is never a
     /// venue. See `shards_token_of`.
     ShardsToken,
+    /// v1.6: Aidols-codebase factory (exact id; curve in the factory). venues/aidols.rs
+    AidolsCurve(crate::venues::AidolsPad),
+    /// v1.6: factory-held curve (exact id), per-pad interface. venues/factory.rs
+    FactoryCurve(crate::venues::FactoryPad),
+    /// v1.6: token-held curve; the id is the FACTORY, the venue any `<label>.<id>` (as
+    /// ShardsToken). venues/token.rs
+    TokenCurve(crate::venues::TokenPad),
+    /// v1.6: Kelytra internal-balance exchange (exact id). venues/kelytra.rs
+    Kelytra,
 }
 
 /// v1.5: `token` is `<label>.<factory>` with exactly one non-empty label (a Shards token account
@@ -72,6 +81,10 @@ pub fn parse(kind: DexKind, msg: &str, ctx: &Ctx) -> Result<Swap, &'static str> 
         }
         // v1.5: Shards trades are typed ops whose msg the contract builds; no raw msg is accepted
         DexKind::ShardsToken => return Err(E_BAD_MSG),
+        // v1.6: curve venues parse through msg_venues::parse (needs the receiver); never here
+        DexKind::AidolsCurve(_) | DexKind::FactoryCurve(_) | DexKind::TokenCurve(_) | DexKind::Kelytra => {
+            return Err(E_BAD_MSG)
+        }
     };
     nonzero(swap)
 }

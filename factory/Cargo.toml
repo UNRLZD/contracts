@@ -1,6 +1,6 @@
 [package]
 name = "factory"
-version = "1.2.0"
+version = "1.3.0"
 edition = "2021"
 # v1.4.3 (MSRV-002): the toolchain this is built and tested with (reproducible image: 1.97.1)
 rust-version = "1.96"
@@ -15,9 +15,12 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 near-sdk = { workspace = true }
+# 1.3.0: verifies the owner's signed creation intent (docs/owner-v16-spec.md §6.1)
+owner-auth = { path = "../owner-auth" }
 
 [dev-dependencies]
 near-sdk = { workspace = true, features = ["unit-testing"] }
+owner-auth = { path = "../owner-auth", features = ["testkit"] }
 
 [package.metadata.near.reproducible_build]
 # `cargo near build reproducible-wasm` (needs Docker + a committed git repo; set

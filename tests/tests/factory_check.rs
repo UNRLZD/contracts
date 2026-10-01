@@ -42,7 +42,7 @@ async fn v145_factory_check_script_fails_closed() -> anyhow::Result<()> {
         {"id": env.plach.id(), "kind": "Plach"}]);
     let good = json!({"admin": env.admin.id(), "fee_recipient": env.fees.id(), "fee_bps": FEE_BPS, "wrap": env.wrap.id(),
         "dex_allowlist": allow, "max_fee_bps": 100, "factory_code_hash": code_hash(&out("factory")),
-        "account_code_hash": env.code_hash});
+        "account_code_hash": env.code_hash, "code_timelock_ns": "0"});
     let with = |k: &str, v: Value| {
         let mut e = good.clone();
         e[k] = v;
@@ -109,19 +109,31 @@ async fn v145_factory_check_script_fails_closed() -> anyhow::Result<()> {
         println!("-- {name}: exit {}\n{o}", if ok { 0 } else { 1 });
         assert!(!ok && o.contains(msg), "{name}: {o}");
     }
-    // a factory with two DCL-kind entries
-    let f2 = sub(&env.root, "tt2", 50 * NEAR).await?.deploy(&out("factory")).await?.into_result()?;
-    let allow2 = json!([{"id": env.dcl.id(), "kind": "RheaDcl"}, {"id": env.plach.id(), "kind": "RheaDcl"}]);
-    ok(f2
-        .call("new")
-        .args_json(json!({"admin": env.admin.id(), "code_hash": h,
-            "fee_config": {"fee_bps": FEE_BPS, "fee_recipient": env.fees.id()}, "dex_allowlist": allow2, "wrap": env.wrap.id()}))
-        .transact()
-        .await?)?;
-    let two = write(&dir, "two.json", &with("dex_allowlist", allow2));
-    let (ok2, o) = check(&rpc, &[f2.id().as_str(), &two, &h], None);
-    println!("-- two DCL\n{o}");
-    assert!(!ok2 && o.contains("2 RheaDcl"), "{o}");
+    // three DCL-kind entries (factory 1.3.0 refuses more than 2 at `new`, so offline: the live
+    // factory's views with the allowlist replaced)
+    let allow3 = json!([{"id": env.dcl.id(), "kind": "RheaDcl"}, {"id": env.plach.id(), "kind": "RheaDcl"},
+        {"id": env.rhea.id(), "kind": "RheaDcl"}]);
+    let mut cfg: Value = env.worker.view(env.factory.id(), "get_config").await?.json()?;
+    cfg["dex_allowlist"] = allow3.clone();
+    let st: Value = env.worker.view(env.factory.id(), "get_admin_state").await?.json()?;
+    let appr: Value = env.worker.view(env.factory.id(), "get_approved_code_hashes").await?.json()?;
+    let (cf, sf, af) =
+        (write(&dir, "cfg3.json", &cfg), write(&dir, "st3.json", &st), write(&dir, "ap3.json", &appr));
+    let three = write(&dir, "three.json", &with("dex_allowlist", allow3));
+    let script = std::env::var("NT_CHECK_FACTORY")
+        .unwrap_or_else(|_| format!("{}/../scripts/check-factory.sh", env!("CARGO_MANIFEST_DIR")));
+    let o3 = std::process::Command::new("sh")
+        .arg(script)
+        .args(["-", &three, &h])
+        .env("FACTORY_CONFIG_JSON", &cf)
+        .env("FACTORY_ACCOUNT_CODE_HASH", code_hash(&out("factory")))
+        .env("FACTORY_ADMIN_STATE_JSON", &sf)
+        .env("FACTORY_APPROVED_JSON", &af)
+        .env_remove("EXPECTED_ADMIN")
+        .output()?;
+    let o = format!("{}{}", String::from_utf8_lossy(&o3.stdout), String::from_utf8_lossy(&o3.stderr));
+    println!("-- three DCL\n{o}");
+    assert!(!o3.status.success() && o.contains("3 RheaDcl"), "{o}");
     // a different factory binary with the right config (code hash of the factory itself)
     let f3 = sub(&env.root, "tt3", 50 * NEAR).await?.deploy(&out("factory_v1_4_1")).await?.into_result()?;
     ok(f3
@@ -145,6 +157,64 @@ async fn v145_factory_check_script_fails_closed() -> anyhow::Result<()> {
     let (ok4, o) = check(&rpc, &[long.id().as_str(), &ok_file, &h], None);
     println!("-- 48-char factory id\n{o}");
     assert!(!ok4 && o.contains("max 47"), "{o}");
+    // factory 1.3.0 (F-20 + code-hash timelock): the timelock pinned, no pending code or admin,
+    // the approved signed-upgrade list as pinned; venue kinds (objects) compare exactly
+    let tl = write(&dir, "tl.json", &with("code_timelock_ns", json!("86400000000000")));
+    let (okt, o) = check(&rpc, &[&f, &tl, &h], None);
+    assert!(!okt && o.contains("code_timelock_ns"), "{o}");
+    let signed = write(&dir, "signed.json", &with("signed_code", json!(true)));
+    let (oks, o) = check(&rpc, &[&f, &signed, &h], None);
+    assert!(!oks && o.contains("approved code hashes"), "not flagged signed: {o}");
+    ok(env
+        .admin
+        .call(env.factory.id(), "set_code_hash")
+        .args_json(json!({"code_hash": h, "signed_code": true}))
+        .deposit(near_workspaces::types::NearToken::from_yoctonear(1))
+        .transact()
+        .await?)?;
+    let (oks2, o) = check(&rpc, &[&f, &signed, &h], None);
+    assert!(oks2, "flagged + pinned signed_code: {o}");
+    let (oks3, o) = check(&rpc, &[&f, &ok_file, &h], None);
+    assert!(!oks3 && o.contains("approved code hashes"), "flag not pinned: {o}");
+    ok(env
+        .admin
+        .call(env.factory.id(), "propose_admin")
+        .args_json(json!({"new_admin": "next.test.near"}))
+        .deposit(near_workspaces::types::NearToken::from_yoctonear(1))
+        .transact()
+        .await?)?;
+    let (oka, o) = check(&rpc, &[&f, &signed, &h], None);
+    assert!(!oka && o.contains("pending admin"), "{o}");
+    // a 24 h timelock factory with a pending proposal, and 1.3.0 venue kinds in its allowlist
+    let venues = json!([{"id": env.rhea.id(), "kind": "RheaClassic"}, {"id": env.dcl.id(), "kind": "RheaDcl"},
+        {"id": "aidols.test.near", "kind": {"AidolsCurve": "Near"}}, {"id": "nearfun.test.near", "kind": {"TokenCurve": "NearFun"}},
+        {"id": "kel.test.near", "kind": "Kelytra"}]);
+    let f5 = sub(&env.root, "tt5", 50 * NEAR).await?.deploy(&out("factory")).await?.into_result()?;
+    ok(f5
+        .call("new")
+        .args_json(json!({"admin": env.admin.id(), "code_hash": h,
+            "fee_config": {"fee_bps": FEE_BPS, "fee_recipient": env.fees.id()}, "dex_allowlist": venues, "wrap": env.wrap.id()}))
+        .transact()
+        .await?)?;
+    let mut e5 = with("dex_allowlist", venues.clone());
+    e5["code_timelock_ns"] = json!("86400000000000");
+    let v5 = write(&dir, "v5.json", &e5);
+    let (ok5, o) = check(&rpc, &[f5.id().as_str(), &v5, &h], None);
+    assert!(ok5, "1.3.0 venue kinds, 24 h timelock: {o}");
+    let mut e5b = e5.clone();
+    e5b["dex_allowlist"][2]["kind"] = json!({"AidolsCurve": "Patata"});
+    let v5b = write(&dir, "v5b.json", &e5b);
+    let (ok5b, o) = check(&rpc, &[f5.id().as_str(), &v5b, &h], None);
+    assert!(!ok5b && o.contains("dex_allowlist"), "a different pad kind: {o}");
+    ok(env
+        .admin
+        .call(f5.id(), "set_code_hash")
+        .args_json(json!({"code_hash": "11111111111111111111111111111111", "signed_code": true}))
+        .deposit(near_workspaces::types::NearToken::from_yoctonear(1))
+        .transact()
+        .await?)?;
+    let (ok6, o) = check(&rpc, &[f5.id().as_str(), &v5, &h], None);
+    assert!(!ok6 && o.contains("pending code proposal"), "{o}");
     let _ = std::fs::remove_dir_all(&dir);
     Ok(())
 }

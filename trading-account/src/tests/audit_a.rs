@@ -63,6 +63,8 @@ fn poc_account() -> TradingAccount {
         vec![Dex { id: a("v2.ref-finance.near"), kind: DexKind::RheaClassic }],
         a("wrap.near"),
         None,
+        None,
+        None,
     );
     ctx("owner.near", 1, 10 * NEAR, T0);
     c.owner_set_automation_key(auto_pk(), U128(NEAR));

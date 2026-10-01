@@ -1,0 +1,41 @@
+{
+  "args": {
+    "creator_id": "6d3f0f2b539fcfe761979bd72e793153a029f42f2d70a4c3c02a11c5daef89f9",
+    "creator_wallet": "6d3f0f2b539fcfe761979bd72e793153a029f42f2d70a4c3c02a11c5daef89f9",
+    "dex_id": "dclv2.ref-labs.near",
+    "wnear_id": "wrap.near",
+    "quote_id": "wrap.near",
+    "route_pool_id": null,
+    "mode": "curve",
+    "metadata": {
+      "spec": "ft-1.0.0",
+      "name": "Near Cat",
+      "symbol": "NCAT",
+      "icon": null,
+      "reference": "https://nearfun.io/api/metadata/f57cf0fcd3c7137f7d6c24b2ff5d800bfb68bf6b4ec5d5a2f28bee3820a1d566",
+      "reference_hash": "9Xzw/NPHE399bCSy/12AC/tov2tOxdWi8ovuOCCh1WY=",
+      "decimals": 18
+    },
+    "total_supply": "1000000000000000000000000000",
+    "curve": {
+      "virtual_near": "2953934077868551783870727401",
+      "virtual_tokens": "1327341227000000000000000000",
+      "curve_supply": "668180011854417848006989488",
+      "graduation_fee_bps": 0
+    },
+    "buy_tax_bps": 0,
+    "sell_tax_bps": 0,
+    "curve_fee_bps": 100,
+    "platform_share_bps": 2000,
+    "split": {
+      "creator_bps": 3333,
+      "dividends_bps": 3334,
+      "buyback_bps": 3333,
+      "liquidity_bps": 0
+    },
+    "launch_index": 1,
+    "early_sell_ms": 3600000,
+    "early_curve_bps": 900,
+    "early_dex_bps": 900
+  }
+}

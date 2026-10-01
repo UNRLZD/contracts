@@ -192,9 +192,13 @@ impl Env {
             .transact()
             .await?)?;
 
-        // Global code + factory.
-        let deployer =
-            sub(&root, "gdeploy", 100 * NEAR).await?.deploy(&out("global_deployer")).await?.into_result()?;
+        // Global code + factory. v1.6: global code storage costs ~0.1 N/KB (a ~600 KB TA ~60 N), so
+        // the deployer is funded for several codes per test.
+        let deployer = sub(&root, "gdeploy", 2_000 * NEAR)
+            .await?
+            .deploy(&out("global_deployer"))
+            .await?
+            .into_result()?;
         let code = account_wasm.unwrap_or_else(|| out("trading_account"));
         ok(deployer.call("deploy").args_borsh(code.clone()).gas(Gas::from_tgas(300)).transact().await?)?;
         let code_hash = code_hash(&code);
@@ -230,6 +234,9 @@ impl Env {
                 "fee_config": {"fee_bps": FEE_BPS, "fee_recipient": fees.id()},
                 "dex_allowlist": dexes,
                 "wrap": wrap.id(),
+                // factory 1.3.0: no code-hash timelock in the sandbox (the suite can't fast-forward
+                // 24 h); older factory code ignores the field
+                "code_timelock_ns": "0",
             }))
             .transact()
             .await?)?;

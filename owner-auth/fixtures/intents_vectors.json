@@ -1,0 +1,66 @@
+{
+  "note": "verifying_contract = TA; message {ops}; salt/deadline as generated (tests pin block time)",
+  "ta": "0123456789abcdef.trade.unrlzd.near",
+  "salt": "252812b3",
+  "rp_id": "signer.unrealized.trade",
+  "origin": "https://signer.unrealized.trade",
+  "vectors": [
+    {
+      "signer": "dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f",
+      "hash": "4a729379aec368b45ee5a2968eb22d9c7d9c4a1882e641e536e92f09c9279353",
+      "mp": {
+        "standard": "raw_ed25519",
+        "payload": "{\"signer_id\":\"dad39ae7673ffa142fe1ca09347a9b25bff3513f1f28a624f399a8c3db0c674f\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-09-30T17:46:52.602Z\",\"nonce\":\"Vij2xgAlKBKzgEJRamQq2hjHMzVzhujZGrIg2YL4diY=\",\"ops\":[{\"op\":\"rotate_salt\"}]}",
+        "public_key": "ed25519:FjD2KTkwjKjx22fpjkEtdDXFLvQqeqVrTbARhJdMNnpE",
+        "signature": "ed25519:26NnhgetRyPrGpqAsudLyNQBEijopLzqJZcRJBHGDPcg5nYiHpsvw5wTvfzf1KqdTMwHLeDYe64YumQ79ofKubbF"
+      }
+    },
+    {
+      "signer": "0x27bddf118feba46b116925778dfdbc4cbec42edb",
+      "hash": "25156eb9f9c3ce48e56fc43e2adedbd969ad4540845713c7d2c01943afdf6ded",
+      "mp": {
+        "standard": "erc191",
+        "payload": "{\"signer_id\":\"0x27bddf118feba46b116925778dfdbc4cbec42edb\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-09-30T17:46:52.602Z\",\"nonce\":\"Vij2xgAlKBKzgEJRamQq2hjw1+vJdx19r+bbujOdz3c=\",\"ops\":[{\"op\":\"rotate_salt\"}]}",
+        "signature": "secp256k1:EeSHDTu3feGFYXQm8VihRxPNq4KoCYNTFpacqCqVMhU5wbuPRGHmt4pBpUtVEJQqHR8yWaaTCWTJoVgK3Z1doGKMz"
+      }
+    },
+    {
+      "signer": "5192ef3a1ba181e20992e67d7e25886e824fd4718599974a5e7e2fe07543e27b",
+      "hash": "1eaf5a383dab092a84d576332e12935fb8a880fbc276dfa058c722ad75e39c51",
+      "mp": {
+        "standard": "nep413",
+        "payload": {
+          "message": "{\"signer_id\":\"5192ef3a1ba181e20992e67d7e25886e824fd4718599974a5e7e2fe07543e27b\",\"deadline\":\"2026-09-30T17:46:52.602Z\",\"ops\":[{\"op\":\"rotate_salt\"}]}",
+          "nonce": "Vij2xgAlKBKzgEJRamQq2hj40wGB9kDnQx7wNQkhwT0=",
+          "recipient": "0123456789abcdef.trade.unrlzd.near"
+        },
+        "public_key": "ed25519:6VRySZzx2Tpnz9N27p7jpacvnMq7e8u1USRpLycpQ6uQ",
+        "signature": "ed25519:5x2byMuD5wBPB67ak2UcCnuKH3AijbUPZKDZxyrP6pwuZeeNgH1ACMjsHAfiv3W4BhoSuHXYUDsVpu4z7uvosV2K"
+      }
+    },
+    {
+      "signer": "0x4a9758f737416fe54f7c68aa405e1fd9a01d1ec6",
+      "hash": "ff8d6be566402fde99004d23ec35e7190bf580a682f0e8529427d969771b626d",
+      "mp": {
+        "standard": "webauthn",
+        "payload": "{\"signer_id\":\"0x4a9758f737416fe54f7c68aa405e1fd9a01d1ec6\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-09-30T17:46:52.602Z\",\"nonce\":\"Vij2xgAlKBKzgEJRamQq2hi7zsDWknrA3zZA4ZYU7Eo=\",\"ops\":[{\"op\":\"rotate_salt\"}]}",
+        "public_key": "p256:3kxmXGHeQVWTaBfMfU7W3mmTw3CEAiWz2QyU78ucFVWezFCAiz9UBdikQzmjyigdekU777SHTSh2CXG6eTKNRcgs",
+        "signature": "p256:5Z54mHgrQcKz8WxqMyTD1sCZJZ792pC26v6AHfyNJdQpbyPSHLT15oKxJtPi8Ne5woRB2rA7td8nqqw6nqsf3BKD",
+        "client_data_json": "{\"type\":\"webauthn.get\",\"challenge\":\"_41r5WZAL96ZAE0j7DXnGQv1gKaC8OhSlCfZaXcbYm0\",\"origin\":\"https://signer.unrealized.trade\",\"crossOrigin\":false}",
+        "authenticator_data": "o17MkfZN0EppIChbQxCo7o_ez1yPUnsAIl_KkH4nLNMFAAAAAA"
+      }
+    },
+    {
+      "signer": "84bab25f7c775dec235ccd37f456649eafd0e8c2ada3a5801e75f15349c561b3",
+      "hash": "b6dee2829ec9955a8660bee36700e53a3e082ac4ef497b3ecf8e1a1ac0346900",
+      "mp": {
+        "standard": "webauthn",
+        "payload": "{\"signer_id\":\"84bab25f7c775dec235ccd37f456649eafd0e8c2ada3a5801e75f15349c561b3\",\"verifying_contract\":\"0123456789abcdef.trade.unrlzd.near\",\"deadline\":\"2026-09-30T17:46:52.602Z\",\"nonce\":\"Vij2xgAlKBKzgEJRamQq2hgtYZHqGGvtq4kj26KX5JQ=\",\"ops\":[{\"op\":\"rotate_salt\"}]}",
+        "public_key": "ed25519:9w7w39kdcP3U89a86DQ42VxFRGpKk338sHvei1aKue5x",
+        "signature": "ed25519:BtBT4YFNP465WBMH1HhJyYe1cXMh7r3DmsB2saHz1HDH3YeDVeHUchr3zvpmPnABKUzVHqkuEUvqcCG9Tu5zaYq",
+        "client_data_json": "{\"type\":\"webauthn.get\",\"challenge\":\"tt7igp7JlVqGYL7jZwDlOj4IKsTvSXs-z44aGsA0aQA\",\"origin\":\"https://signer.unrealized.trade\",\"crossOrigin\":false}",
+        "authenticator_data": "o17MkfZN0EppIChbQxCo7o_ez1yPUnsAIl_KkH4nLNMFAAAAAA"
+      }
+    }
+  ]
+}
